@@ -17,3 +17,7 @@ DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
 `bili-8790/` 保存旧转发不可见时跳过清理、分组失败不阻断后续互动及对应回归测试。完整引擎仍属于上游项目，原部署使用 LotteryAutoScript v2.11.3（GPL-3.0-or-later）。本目录仅包含修复补丁和隔离测试，见其说明。
 
 此仓库不包含服务器密码、账号 Cookie、私钥、运行数据库、动态台账、备份或日志。部署时使用各服务器自身配置。
+
+## ClawChat
+
+`clawchat/` 是当前群聊网站 ClawChat 0.7.67 的源码快照，包含现有服务器适配、前后端、测试和各平台构建文件。Linux 部署、数据目录及多项目仓库下的升级边界见 `clawchat/DEPLOYMENT.md`。聊天记录、上传附件、账号密钥及运行数据不包含在内。

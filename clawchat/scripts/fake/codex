@@ -1,0 +1,3 @@
+#!/bin/bash
+# 假 Codex：使用跨平台的 Node 入口，既能测 exec，也能测 app-server；不连接任何 AI。
+exec node "$(dirname "$0")/codex-cli.mjs" "$@"

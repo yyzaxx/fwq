@@ -1,0 +1,24 @@
+# 可选 Nginx 示例；不包含服务器上其他网站的路由。
+# 默认仅本机监听，并要求独立访问口令。
+server {
+    listen 127.0.0.1:8795;
+    server_name _;
+    auth_basic "ClawChat";
+    auth_basic_user_file /etc/nginx/clawchat.htpasswd;
+    client_max_body_size 64m;
+    client_body_timeout 300s;
+    location / {
+        proxy_pass http://127.0.0.1:7317;
+        proxy_http_version 1.1;
+        proxy_set_header Host 127.0.0.1:7317;
+        proxy_set_header X-Real-IP "";
+        proxy_set_header X-Forwarded-For "";
+        proxy_set_header X-Forwarded-Proto "";
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_cache off;
+        proxy_connect_timeout 15s;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+}

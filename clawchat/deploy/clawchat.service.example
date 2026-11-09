@@ -1,0 +1,21 @@
+[Unit]
+Description=ClawChat 本地 AI 群聊（127.0.0.1:7317）
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/clawchat
+Environment=PATH=/root/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=CLAWCHAT_PORT=7317
+Environment=HOME=/root
+Environment=LANG=zh_CN.UTF-8
+ExecStart=/usr/local/bin/node /opt/clawchat/server.js
+Restart=always
+RestartSec=3
+KillMode=mixed
+StandardOutput=append:/var/log/clawchat.log
+StandardError=append:/var/log/clawchat.log
+
+[Install]
+WantedBy=multi-user.target
