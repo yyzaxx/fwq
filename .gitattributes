@@ -1,0 +1,2 @@
+# 补丁保留原文件换行字节，以便应用到 CRLF 引擎源码。
+*.patch -text whitespace=cr-at-eol

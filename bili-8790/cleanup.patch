@@ -1,0 +1,15 @@
+--- /root/ClawChatProjects/open/bili-8790/cleanup.before.cjs	2026-11-07 00:24:39.600513475 +0800
++++ /opt/bililottery/app/src/cleanup.cjs	2026-11-09 20:16:05.870895850 +0800
+@@ -78,7 +78,11 @@
+             let data;
+             try { data = await request(`/x/polymer/web-dynamic/v1/detail?id=${record.repostId}&features=itemOpusStyle`, cookie, options.signal); }
+             catch (error) {
+-                if ([-404, 4101131].includes(error.code)) { report.skipped++; continue; }
++                if ([-404, 4101131, 4101152].includes(error.code)) {
++                    report.skipped++;
++                    options.onOutput?.(`[自动清理] 转发 ${record.repostId} 不存在或不可见，跳过删除并保留记录\n`);
++                    continue;
++                }
+                 throw error;
+             }
+             const item = data?.item;

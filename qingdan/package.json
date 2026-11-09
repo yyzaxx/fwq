@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js",
+    "test:browser": "node qa/browser-check.cjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,31 @@
+--- /root/ClawChatProjects/open/bili-8790/monitor.before.js	2026-11-07 00:24:39.607513433 +0800
++++ /opt/bililottery/app/engine/LotteryAutoScript/lib/core/monitor.js	2026-11-09 20:22:01.696731968 +0800
+@@ -209,7 +209,6 @@
+                     case 1011:
+                     case 2002:
+                     case 2003:
+-                    case 3001:
+                     case 4001:
+                     case 4002:
+                     case 4003:
+@@ -233,6 +232,7 @@
+                     case 1010:
+                     case 1004:
+                     case 2001:
++                    case 3001:
+                     case 5001:
+                         is_shutdown = true;
+                         break;
+@@ -721,10 +721,8 @@
+                 } else {
+                     if (is_not_create_partition !== true) {
+                         if (await bili.movePartition(u, this.tagid)) {
+-                            log.warn('抽奖信息', `dyid: ${dyid}, uid: ${u} tagid: ${this.tagid}`);
+-                            /* 3000系错误 */
+-                            status = 1001;
+-                            return true;
++                            log.warn('移动分区', `分组失败，保留现有关注设置，继续后续互动：dyid=${dyid}, uid=${u}`);
++                            return false;
+                         } else {
+                             return false;
+                         }

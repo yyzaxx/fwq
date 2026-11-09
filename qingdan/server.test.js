@@ -1,0 +1,33 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createApp} from './server.js';
+
+async function fixture(t){
+ const dir=mkdtempSync(join(tmpdir(),'qingdan-'));const dbPath=join(dir,'tasks.sqlite');let app,url;
+ const start=async()=>{app=createApp({dbPath});await new Promise(r=>app.server.listen(0,'127.0.0.1',r));url='http://127.0.0.1:'+app.server.address().port};
+ const stop=async()=>{await new Promise(r=>app.server.close(r));app.db.close()};
+ await start();t.after(async()=>{await stop();rmSync(dir,{recursive:true,force:true})});
+ return {get app(){return app},restart:async()=>{await stop();await start()},request:async(path='',method='GET',body,headers={})=>{const r=await fetch(url+'/api/tasks'+path,{method,headers:{'content-type':'application/json',...headers},body:body===undefined?undefined:JSON.stringify(body)});return {status:r.status,data:await r.json()}}};
+}
+const add=(f,title='服务端任务')=>f.request('','POST',{title,priority:'normal'});
+const legacy={id:'legacy-1',title:'旧浏览器任务',done:false,priority:'high',created:1};
+
+test('创建的任务重启服务后仍存在',async t=>{const f=await fixture(t);const r=await add(f,'  写入服务器  ');assert.equal(r.status,201);assert.equal(r.data.task.title,'写入服务器');assert.equal(r.data.task.version,1);await f.restart();const list=await f.request();assert.deepEqual(list.data.tasks.map(x=>x.title),['写入服务器'])});
+test('修改完成状态和内容后其他设备读取新版本',async t=>{const f=await fixture(t);const task=(await add(f)).data.task;const r=await f.request('/'+task.id,'PATCH',{title:'新标题',done:true,version:1});assert.equal(r.status,200);assert.equal(r.data.task.done,true);assert.equal(r.data.task.version,2);assert.equal((await f.request()).data.tasks[0].title,'新标题')});
+test('同任务旧版本修改或删除被拒绝且不覆盖新内容',async t=>{const f=await fixture(t);const x=(await add(f)).data.task;const results=await Promise.all([f.request('/'+x.id,'PATCH',{title:'设备甲',version:1}),f.request('/'+x.id,'PATCH',{title:'设备乙',version:1})]);assert.deepEqual(results.map(x=>x.status).sort(),[200,409]);assert.equal((await f.request('/'+x.id+'?version=1','DELETE')).status,409);assert.equal((await f.request()).data.tasks.length,1)});
+test('不同任务并发更新互不覆盖',async t=>{const f=await fixture(t);const a=(await add(f,'甲')).data.task,b=(await add(f,'乙')).data.task;const r=await Promise.all([f.request('/'+a.id,'PATCH',{done:true,version:1}),f.request('/'+b.id,'PATCH',{title:'乙已改',version:1})]);assert.deepEqual(r.map(x=>x.status),[200,200]);const list=(await f.request()).data.tasks;assert.equal(list.find(x=>x.id===a.id).done,true);assert.equal(list.find(x=>x.id===b.id).title,'乙已改')});
+test('删除任务持久生效且不能由旧设备导入复活',async t=>{const f=await fixture(t);await f.request('/import','POST',{tasks:[legacy]});assert.equal((await f.request('/legacy-1?version=1','DELETE')).status,200);await f.restart();await f.request('/import','POST',{tasks:[legacy]});assert.deepEqual((await f.request()).data.tasks,[])});
+test('旧数据迁移幂等且不会覆盖已更新任务',async t=>{const f=await fixture(t);assert.equal((await f.request('/import','POST',{tasks:[legacy]})).status,200);await f.request('/legacy-1','PATCH',{title:'服务器更新',version:1});await f.request('/import','POST',{tasks:[legacy]});const list=(await f.request()).data.tasks;assert.equal(list.length,1);assert.equal(list[0].title,'服务器更新')});
+test('非法批量迁移不产生部分写入',async t=>{const f=await fixture(t);assert.equal((await f.request('/import','POST',{tasks:[legacy,{...legacy,id:'bad',title:' '}]})).status,400);assert.deepEqual((await f.request()).data.tasks,[])});
+test('清理仅删除指定且版本仍匹配的已完成任务',async t=>{const f=await fixture(t);const a=(await add(f,'已完成')).data.task,b=(await add(f,'待办')).data.task;await f.request('/'+a.id,'PATCH',{done:true,version:1});let r=await f.request('/clear-completed','POST',{tasks:[{id:a.id,version:1}]});assert.equal(r.status,409);assert.equal((await f.request()).data.tasks.length,2);r=await f.request('/clear-completed','POST',{tasks:[{id:a.id,version:2}]});assert.equal(r.status,200);assert.deepEqual((await f.request()).data.tasks.map(x=>x.id),[b.id])});
+test('任务字段校验拒绝空白、过长、非法优先级及非布尔完成状态',async t=>{const f=await fixture(t);for(const body of [{title:' '},{title:'长'.repeat(201)},{title:'任务',priority:'urgent'},{title:13}])assert.equal((await f.request('','POST',body)).status,400);const x=(await add(f)).data.task;assert.equal((await f.request('/'+x.id,'PATCH',{done:'false',version:1})).status,400);assert.equal((await f.request('/'+x.id,'PATCH',{done:true})).status,400);assert.equal((await f.request('/'+x.id,'PATCH',{version:1})).status,400)});
+test('数据库写入失败返回错误且没有创建任务',async t=>{const f=await fixture(t);f.app.db.exec('PRAGMA query_only=ON');const r=await add(f);assert.equal(r.status,503);assert.match(r.data.error,/保存失败/);assert.deepEqual((await f.request()).data.tasks,[])});
+test('非同源写入被拒绝且不创建任务',async t=>{const f=await fixture(t);assert.equal((await f.request('','POST',{title:'跨站'},{origin:'https://other.example'})).status,403);assert.equal((await f.request('','POST',{title:'跨站'},{'sec-fetch-site':'cross-site'})).status,403);assert.deepEqual((await f.request()).data.tasks,[])});
+test('超大请求和非 JSON 写入被拒绝',async t=>{const f=await fixture(t);assert.equal((await f.request('','POST',{title:'a'.repeat(2_100_000)})).status,413);assert.equal((await f.request('','POST',{title:'任务'},{'content-type':'text/plain'})).status,415)});
+
+test('同次新增重试在重启服务后仍只创建一条任务',async t=>{const f=await fixture(t);const body={title:'回执丢失后重试',priority:'high',requestId:'create-request-1'};const first=await f.request('','POST',body);assert.equal(first.status,201);await f.restart();const retry=await f.request('','POST',body);assert.equal(retry.status,200);assert.equal(retry.data.task.id,first.data.task.id);assert.equal((await f.request()).data.tasks.length,1)});
+test('同请求标识不能用于另一内容，已删除任务也不会被重试复活',async t=>{const f=await fixture(t);const body={title:'原始新增',requestId:'create-request-2'};const first=await f.request('','POST',body);assert.equal(first.status,201);assert.equal((await f.request('','POST',{...body,title:'另一内容'})).status,409);await f.request('/'+first.data.task.id+'?version=1','DELETE');assert.equal((await f.request('','POST',body)).status,409);assert.equal((await f.request()).data.tasks.length,0)});
+test('内容相同但请求标识不同仍可有两条独立任务',async t=>{const f=await fixture(t);const a=await f.request('','POST',{title:'同名任务',requestId:'independent-1'});const b=await f.request('','POST',{title:'同名任务',requestId:'independent-2'});assert.equal(a.status,201);assert.equal(b.status,201);assert.notEqual(a.data.task.id,b.data.task.id);assert.equal((await f.request()).data.tasks.length,2)});

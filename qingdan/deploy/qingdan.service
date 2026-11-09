@@ -1,0 +1,25 @@
+[Unit]
+Description=Qingdan shared task service
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=qingdan
+StateDirectoryMode=0700
+WorkingDirectory=/opt/qingdan
+ExecStart=/usr/local/bin/node /opt/qingdan/server.js
+Environment=NODE_ENV=production
+Environment=PORT=8767
+Environment=DB_PATH=/var/lib/qingdan/tasks.sqlite
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
