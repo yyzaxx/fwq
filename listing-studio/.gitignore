@@ -7,3 +7,4 @@ node_modules/
 .env.*
 *.key
 *.pem
+ops/nginx-server.conf
