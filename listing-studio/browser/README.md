@@ -26,13 +26,15 @@ codex login status
 
 ## 首次部署服务
 
-以下命令在 `listing-studio/` 目录以 root 执行，使用示例中的固定部署目录 `/root/ClawChatProjects/listing/`。其他用户或目录部署时，需要同时修改网站服务、浏览器服务、启动脚本及执行器技能路径。
+以下命令在 `listing-studio/` 目录以 root 执行，使用示例中的固定部署目录 `/root/ClawChatProjects/listing/`。其他用户或目录部署时，需要同时修改网站服务、浏览器服务、启动脚本及执行器技能路径。此处的技能软链接用于新机器；若目标已经存在，先核实已有技能，不覆盖它。
 
 ```sh
 install -d -m 0755 /root/ClawChatProjects/listing
-cp -a web browser /root/ClawChatProjects/listing/
+cp -a web browser ai-listing /root/ClawChatProjects/listing/
 install -d -m 0700 /root/ClawChatProjects/listing/browser/profile
 chmod 0755 /root/ClawChatProjects/listing/browser/start.sh
+install -d -m 0700 /root/.codex/skills
+ln -s /root/ClawChatProjects/listing/ai-listing /root/.codex/skills/ai-listing
 
 install -m 0644 ops/listing-browser.service /etc/systemd/system/listing-browser.service
 install -m 0644 web/ops/listing-web.service /etc/systemd/system/listing-web.service

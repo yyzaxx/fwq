@@ -1,0 +1,20 @@
+请在这台新服务器部署 ClawChat、远程浏览器和 Listing 网站，源码从公开仓库 https://github.com/yyzaxx/fwq.git 获取。
+
+先确认你操作的是目标新服务器，查看系统版本、架构、内存、交换空间、磁盘和已占用端口；不要误改旧服务器或覆盖这台机器上的其他网站、聊天记录和账号配置。
+
+如果尚未拉取，克隆到 /opt/fwq-source；如果已有代码，先检查本地改动，再 git pull --ff-only，记录最终提交号。完整阅读 deploy/README.md，并按涉及目录遵守对应 AGENTS.md；ClawChat 的部署细节在 clawchat/DEPLOYMENT.md，Listing 与浏览器在 listing-studio/browser/README.md。
+
+按此系统安装真实需要的依赖，然后部署：
+1. ClawChat，程序 /opt/clawchat，后端本机 7317。
+2. 专用 Chromium / Xvfb / openbox / x11vnc / noVNC / websockify，CDP 本机 9223、VNC 本机 5901、noVNC 本机 6081。
+3. Listing，程序 /root/ClawChatProjects/listing/web，后端本机 7350。将仓库 listing-studio/ai-listing 及全部 references 安装到 /root/ClawChatProjects/listing/ai-listing，并使 /root/.codex/skills/ai-listing 指向它。
+
+服务模板需要按实际 node、codex 和浏览器安装路径调整。浏览器和 Listing 必须共同使用 listing.slice 与两个资源 drop-in；保持 1GiB 内存硬上限、512MiB 交换空间上限、832MiB 软阈值、一个 CPU 核心配额。最多同时 2 个业务标签，任务串行，保留任务结束后的页面与进程回收。不能取消资源保护来让任务继续。
+
+配置同源 Nginx 入口：ClawChat 8795，Listing 和它的 /listing-browser/ 使用 8796。按新机器生成的 .runtime.json 渲染 Listing 根路径，保留 noVNC WebSocket Upgrade 转发和 ClawChat 的本机来源头适配。公网监听、域名、防火墙和访问控制按服务器所有者已经授权的方式设置；未确定时先用本机监听及 SSH 隧道验收，不开放浏览器控制后端端口。
+
+Codex 和 Amazon/Sif 在新机器单独登录；ClawChat 的其他 AI 成员只安装实际需要的。需要设备码、浏览器登录、验证码或缺少服务器信息时，说明具体缺什么并交还用户处理；等待期间继续完成不依赖它的安装和检查。不把密码、Cookie、认证缓存或私人应用路径提交到公开仓库，也不擅自覆盖已有 Codex / Claude 全局配置。
+
+验收包括：服务状态、ClawChat 健康接口、Listing 页面和 API、CDP、noVNC 实际 WebSocket 与桌面操作、技能文件、两标签上限及资源限制。界面测试使用假 AI，不向真实 ClawChat 群发送测试消息。认证或登录未完成时，交付为“服务已启动，等待登录”，不宣称真实调研已可用。
+
+完成后给出新服务器的源码提交号、三个访问入口、服务状态、验证结果及仍需用户处理的事项。此任务是部署和验收，不是重新设计网站，不自动增加定时更新，不迁移旧机器的私人任务与登录资料。

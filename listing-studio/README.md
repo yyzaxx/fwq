@@ -11,6 +11,7 @@
 ## 目录
 
 - `web/`：网站完整源码及测试，详细说明见 [web/README.md](web/README.md)。
+- `ai-listing/`：真实调研与标题生成使用的技能及全部引用规范。
 - `browser/start.sh`：Chromium、Xvfb、noVNC 专用浏览器启动脚本。
 - [browser/README.md](browser/README.md)：远程浏览器依赖、网站与 CDP/noVNC 的连接关系、首次部署、登录接管及排错。
 - `ops/listing-browser.service`：浏览器 systemd 服务；网站服务和资源限制配置位于 `web/ops/`。
@@ -26,11 +27,11 @@ npm test
 npm run check
 ```
 
-执行真实调研还需要已认证的本机 Codex、部署在 `/root/.codex/skills/ai-listing/` 的技能及其引用文件，以及已登录的 Amazon / Sif 专用浏览器。这些账号、技能运行配置和登录资料需在部署机器单独准备。
+执行真实调研还需要已认证的本机 Codex，以及已登录的 Amazon / Sif 专用浏览器。技能及全部引用文件现已收录在 `ai-listing/`，按部署说明安装到 `/root/.codex/skills/ai-listing/`；账号认证和浏览器登录需在部署机器单独完成。
 
 ## 部署约定
 
-完整部署步骤见 [远程浏览器与网站一起部署](browser/README.md)。配置示例使用 `/root/ClawChatProjects/listing/`：将 `web/` 和 `browser/` 放入该目录，安装两个服务及共同资源限制，再配置同源 Nginx 入口。浏览器服务模板在 `ops/listing-browser.service`，网站服务模板在 `web/ops/listing-web.service`。其他目录或用户部署时需调整路径、服务用户与执行器技能位置。
+完整部署步骤见 [远程浏览器与网站一起部署](browser/README.md)。配置示例使用 `/root/ClawChatProjects/listing/`：将 `web/`、`browser/` 和 `ai-listing/` 放入该目录，安装两个服务及共同资源限制，再配置同源 Nginx 入口。浏览器服务模板在 `ops/listing-browser.service`，网站服务模板在 `web/ops/listing-web.service`。其他目录或用户部署时需调整路径、服务用户与执行器技能位置。
 
 Node 服务只监听本机 7350；浏览器控制端口只监听本机 9223，桌面服务只监听本机 6081。对外访问通过自身 Nginx 入口。随机私人访问路径保存在运行机器的 `web/.runtime.json`，不进入版本库。
 

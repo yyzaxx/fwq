@@ -27,3 +27,7 @@ DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
 `listing-studio/` 是商品图片调研与英文标题工作台，包含网站源码、89项自动测试、专用浏览器启动脚本及 Nginx/systemd 资源保护配置。支持图片与 ZIP 批量调研、两套模板、报告下载、历史删除、一键恢复暂停任务和最多2个浏览器标签页。运行依赖与部署步骤见 [Listing Studio 说明](listing-studio/README.md)。
 
 任务记录、商品图片、报告、模板库、Cookie、浏览器 profile、账号凭据与私人访问路径不包含在内。
+
+## 新服务器联合部署
+
+从 GitHub 拉取并部署 ClawChat、远程浏览器和 Listing，统一入口见 [deploy/README.md](deploy/README.md)。其中包含目录、依赖、技能安装、服务与反代顺序、账号登录和实际验收要求；[deploy/AGENT-HANDOFF.txt](deploy/AGENT-HANDOFF.txt) 可直接交给新服务器上的 AI 执行。
