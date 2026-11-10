@@ -48,6 +48,12 @@ export class TaskRunner {
     const tasks=this.store.list({includeDeleted:true}).sort((a,b)=>(a.queueOrder||0)-(b.queueOrder||0)||a.createdAt.localeCompare(b.createdAt));
     for(let task of tasks){
       this.queueSequence=Math.max(this.queueSequence,task.queueOrder||0);
+      if(!task.deletedAt&&task.state==='staged'&&task.restartedFrom){
+        const message='上次重新开始任务时服务中断，资料已保留；检查后继续队列';
+        task=await this.store.patch(task.id,{state:'queued',message,resourcePause:{status:'paused',message,at:new Date().toISOString()}});
+        const source=this.store.get(task.restartedFrom);
+        if(source&&!source.latestRestartId)await this.store.patch(source.id,{latestRestartId:task.id});
+      }
       if(!task.deletedAt&&task.state==='running'){
         const message='上次任务运行中断，队列已暂停；检查服务器和浏览器后再继续';
         task=await this.store.patch(task.id,{state:'queued',message,resourcePause:{status:'paused',message,at:new Date().toISOString()}});
@@ -75,7 +81,7 @@ export class TaskRunner {
   }
   resumeAll(){
     const operation=this.queueOperation.catch(()=>{}).then(async()=>{
-      const tasks=this.store.list().filter(task=>task.id!==this.active&&!this.queue.includes(task.id)&&['failed','cancelled','needs_login'].includes(task.state))
+      const tasks=this.store.list().filter(task=>!task.latestRestartId&&task.id!==this.active&&!this.queue.includes(task.id)&&['failed','cancelled','needs_login'].includes(task.state))
         .sort((a,b)=>(a.queueOrder||0)-(b.queueOrder||0)||a.createdAt.localeCompare(b.createdAt));
       for(const task of tasks){
         const hasSources=task.result?.competitors?.length>0||task.result?.keywords?.length>0;
@@ -101,8 +107,8 @@ export class TaskRunner {
         const problem=await this.checkResources('before');
         if(problem){this.resourceError=problem;return this.info();}
         const paused=this.store.list({includeDeleted:true}).filter(task=>task.resourcePause?.status==='paused');
-        const recover=paused.filter(task=>!task.deletedAt&&['failed','queued'].includes(task.state)).sort((a,b)=>(a.queueOrder||0)-(b.queueOrder||0)||a.createdAt.localeCompare(b.createdAt));
-        for(const task of paused)await this.store.patch(task.id,{resourcePause:{...task.resourcePause,status:'resolved',resolvedAt:new Date().toISOString()},...(!task.deletedAt&&['failed','queued'].includes(task.state)?{state:'queued',stage:'queued',message:'资源已恢复，正在继续本项已有调研'}:{})},{includeDeleted:true});
+        const recover=paused.filter(task=>!task.deletedAt&&!task.latestRestartId&&['failed','queued'].includes(task.state)).sort((a,b)=>(a.queueOrder||0)-(b.queueOrder||0)||a.createdAt.localeCompare(b.createdAt));
+        for(const task of paused)await this.store.patch(task.id,{resourcePause:{...task.resourcePause,status:'resolved',resolvedAt:new Date().toISOString()},...(!task.deletedAt&&!task.latestRestartId&&['failed','queued'].includes(task.state)?{state:'queued',stage:'queued',message:'资源已恢复，正在继续本项已有调研'}:{})},{includeDeleted:true});
         const ids=recover.map(task=>task.id),selected=new Set(ids);
         this.queue=[...ids,...this.queue.filter(id=>!selected.has(id))];
         this.resourceError=null;
@@ -110,7 +116,7 @@ export class TaskRunner {
       if(this.browserCleanupError){await this.cleanupAfterTask(this.pendingCleanupId);if(this.browserCleanupError)return this.info();}
       const id=this.blockedForLogin;if(!id){if(this.enabled)void this.drain();return this.info();}
       const task=this.store.get(id,{includeDeleted:true});
-      if(task&&!task.deletedAt&&(task.state==='needs_login'||retryTask)){
+      if(task&&!task.deletedAt&&!task.latestRestartId&&(task.state==='needs_login'||retryTask)){
         await this.store.patch(id,{state:'queued',stage:'queued',loginBarrier:false,message:'登录已处理，正在继续已有调研'});
         this.queue=this.queue.filter(x=>x!==id);this.queue.unshift(id);
       }else if(task)await this.store.patch(id,{loginBarrier:false},{includeDeleted:true});

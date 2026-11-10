@@ -8,6 +8,7 @@ import { promisify } from 'node:util';
 import { TaskStore } from './lib/store.mjs';
 import { TemplateStore } from './lib/templates.mjs';
 import { TaskRunner } from './lib/runner.mjs';
+import { TaskRestarter } from './lib/restart.mjs';
 import { BatchManager,prepareArchive } from './lib/batches.mjs';
 import { importHistory } from './lib/import-history.mjs';
 import { validateInput,detectImage } from './lib/domain.mjs';
@@ -34,6 +35,7 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
   const templates=await new TemplateStore(path.join(dataRoot,'templates.json')).init();
   if(importExisting)await importHistory(store,path.dirname(ROOT));
   const runner=new TaskRunner(store,{browserUrl,enabled:false});
+  const restarter=new TaskRestarter(store,runner);
   const batches=await new TaskStore(path.join(dataRoot,'_batches')).init();
   const batchManager=new BatchManager(store,batches,runner);
   await runner.restore();await batchManager.restore();runner.enabled=runnerEnabled;if(runnerEnabled)void runner.drain();
@@ -117,11 +119,12 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
         return reply(res,201,publicTask(store.get(task.id)));
         }finally{imageUploads--;}
       }
-      const match=route.match(/^api\/tasks\/([a-zA-Z0-9-]{5,80})(?:\/(resume|cancel|file|report|report\.md|download))?$/);
+      const match=route.match(/^api\/tasks\/([a-zA-Z0-9-]{5,80})(?:\/(resume|restart|cancel|file|report|report\.md|download))?$/);
       if(match){
         const [,id,action]=match,task=store.get(id);if(!task)return reply(res,404,{error:'任务不存在'});
         const directory=store.directory(id);
         if(req.method==='GET'&&!action)return reply(res,200,publicTask(task));
+        if(req.method==='POST'&&action==='restart'){await readBody(req);return reply(res,200,publicTask(await restarter.start(id)));}
         if(req.method==='DELETE'&&!action){await readBody(req);return reply(res,200,await batchManager.removeTask(id));}
         if(req.method==='POST'&&action==='cancel'){await readBody(req);await runner.cancel(id);return reply(res,200,publicTask(store.get(id)));}
         if(req.method==='POST'&&action==='resume'){

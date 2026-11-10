@@ -23,8 +23,11 @@ export class TaskStore {
   }
   async create(input,extras={}){
     const task={id:extras.id||randomUUID(),input,state:'queued',stage:'queued',message:'等待开始',events:[],createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),...extras};
-    if(this.tasks.has(task.id))throw new Error('任务已存在');
-    this.tasks.set(task.id,task);await this.write(task);return structuredClone(task);
+    const operation=(this.locks.get(task.id)||Promise.resolve()).catch(()=>{}).then(async()=>{
+      if(this.tasks.has(task.id))throw new Error('任务已存在');
+      await this.write(task);this.tasks.set(task.id,task);return structuredClone(task);
+    });
+    this.locks.set(task.id,operation);return operation;
   }
   patch(id,patch,{includeDeleted=false}={}){
     const operation=(this.locks.get(id)||Promise.resolve()).catch(()=>{}).then(async()=>{
