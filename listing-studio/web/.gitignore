@@ -1,0 +1,4 @@
+data/
+.runtime.json
+*.log
+node_modules/

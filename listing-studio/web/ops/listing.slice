@@ -1,0 +1,13 @@
+[Unit]
+Description=Listing browser and task workload resource budget
+
+[Slice]
+MemoryAccounting=yes
+MemoryHigh=832M
+MemoryMax=1G
+MemorySwapMax=512M
+CPUAccounting=yes
+CPUQuota=100%
+IOAccounting=yes
+IOWeight=20
+TasksMax=512

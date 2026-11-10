@@ -1,0 +1,9 @@
+web/data/
+web/.runtime.json
+browser/profile/
+*.log
+node_modules/
+.env
+.env.*
+*.key
+*.pem

@@ -1,0 +1,18 @@
+[Unit]
+Description=Listing Studio product research workbench
+After=network.target listing-browser.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/ClawChatProjects/listing/web
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/node /root/ClawChatProjects/listing/web/server.mjs
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target

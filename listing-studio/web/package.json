@@ -1,0 +1,1 @@
+{"name":"ai-listing-studio","version":"1.0.0","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node --test --test-concurrency=1 test/*.test.mjs","check":"node --check server.mjs && node --check public/app.js && node --check lib/runner.mjs && node --check lib/resources.mjs"},"engines":{"node":">=22"}}
