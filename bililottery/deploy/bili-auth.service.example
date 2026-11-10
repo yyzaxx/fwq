@@ -1,0 +1,22 @@
+[Unit]
+Description=BiliLottery auth proxy (0.0.0.0:8790)
+After=bili-web.service
+Wants=bili-web.service
+
+[Service]
+Type=simple
+User=bili
+Group=bili
+Environment=BILI_PROXY_PORT=8790
+Environment=BILI_WEB_PORT=8787
+Environment=BILI_PROXY_PASSWORD_FILE=/opt/bililottery/proxy.password
+ExecStart=/usr/local/bin/node /opt/bililottery/auth-proxy.cjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

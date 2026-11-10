@@ -1,0 +1,17 @@
+{
+  "kind": "deployed Linux source snapshot",
+  "application": "BiliLottery Web",
+  "applicationVersion": "1.0.0",
+  "engine": "LotteryAutoScript",
+  "engineVersion": "2.11.3",
+  "upstream": "https://github.com/shanmiteko/LotteryAutoScript",
+  "license": "GPL-3.0-or-later",
+  "modifications": "服务器 Web/认证反代、旧转发不可见时跳过清理、分组失败不阻断后续互动；保留已部署源码。",
+  "runtimeDataIncluded": false,
+  "shellLineEndingNormalizations": [
+    "bililottery/app/engine/LotteryAutoScript/script/docker/init.sh",
+    "bililottery/app/engine/LotteryAutoScript/script/qinglong/init.sh",
+    "bililottery/app/engine/LotteryAutoScript/script/build/changelog.sh",
+    "bililottery/app/engine/LotteryAutoScript/script/build/pkg.sh"
+  ]
+}

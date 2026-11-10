@@ -1,0 +1,341 @@
+{
+  "kind": "source and deployment files only",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 78
+    },
+    {
+      "path": "README.md",
+      "bytes": 2373
+    },
+    {
+      "path": "app/LICENSE",
+      "bytes": 35149
+    },
+    {
+      "path": "app/README-source.md",
+      "bytes": 2489
+    },
+    {
+      "path": "app/README.md",
+      "bytes": 2401
+    },
+    {
+      "path": "app/SOURCE-INFO.json",
+      "bytes": 781
+    },
+    {
+      "path": "app/assets/icon.png",
+      "bytes": 3566
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.dockerignore",
+      "bytes": 109
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.eslintrc.json",
+      "bytes": 377
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/FUNDING.yml",
+      "bytes": 89
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/ISSUE_TEMPLATE/bug_report.yaml",
+      "bytes": 2776
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/ISSUE_TEMPLATE/config.yml",
+      "bytes": 29
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/ISSUE_TEMPLATE/feature_request.yaml",
+      "bytes": 450
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/workflows/docker.yml",
+      "bytes": 878
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/workflows/mirror.yml",
+      "bytes": 686
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/workflows/pkg.yml",
+      "bytes": 2170
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.github/workflows/windows-test.yml",
+      "bytes": 1266
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/.gitignore",
+      "bytes": 138
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/CHANGELOG.md",
+      "bytes": 41126
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/Dockerfile",
+      "bytes": 269
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/Dockerfile.pkg-arm64",
+      "bytes": 923
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/LICENSE",
+      "bytes": 35823
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/README.md",
+      "bytes": 19156
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/env.example.js",
+      "bytes": 3833
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/account.js",
+      "bytes": 658
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/check.js",
+      "bytes": 4850
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/clear.js",
+      "bytes": 6113
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/core/monitor.js",
+      "bytes": 31273
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/core/searcher.js",
+      "bytes": 24365
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/data/config.js",
+      "bytes": 11242
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/data/global_var.js",
+      "bytes": 2513
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/helper/d_storage.js",
+      "bytes": 1536
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/helper/event_bus.js",
+      "bytes": 515
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/helper/notify.js",
+      "bytes": 40217
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/helper/randomDynamic.js",
+      "bytes": 1353
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/index.js",
+      "bytes": 972
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/login.js",
+      "bytes": 1956
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/lottery.js",
+      "bytes": 2678
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/net/api.bili.js",
+      "bytes": 3198
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/net/bili.js",
+      "bytes": 45345
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/net/http.js",
+      "bytes": 7224
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/update.js",
+      "bytes": 3645
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/lib/utils.js",
+      "bytes": 19066
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/main.js",
+      "bytes": 8245
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/my_config.example.js",
+      "bytes": 14882
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/package-lock.json",
+      "bytes": 109351
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/package.json",
+      "bytes": 1482
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/script/build/changelog.sh",
+      "bytes": 868
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/script/build/pkg.sh",
+      "bytes": 1727
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/script/docker/init.sh",
+      "bytes": 6482
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/script/qinglong/init.sh",
+      "bytes": 638
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/ai.test.js",
+      "bytes": 7988
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/api.test.js",
+      "bytes": 1684
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/article.test.js",
+      "bytes": 556
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/dyidSearch.test.js",
+      "bytes": 418
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/dynamic_card.test.js",
+      "bytes": 1249
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/index.js",
+      "bytes": 376
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/ocr.test.js",
+      "bytes": 746
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/offline/bili-api.js",
+      "bytes": 6572
+    },
+    {
+      "path": "app/engine/LotteryAutoScript/test/util.js",
+      "bytes": 215
+    },
+    {
+      "path": "app/package.json",
+      "bytes": 1080
+    },
+    {
+      "path": "app/src/cleanup.cjs",
+      "bytes": 8913
+    },
+    {
+      "path": "app/src/config.cjs",
+      "bytes": 11308
+    },
+    {
+      "path": "app/src/engine.cjs",
+      "bytes": 5790
+    },
+    {
+      "path": "app/src/index.html",
+      "bytes": 23194
+    },
+    {
+      "path": "app/src/main.cjs",
+      "bytes": 10651
+    },
+    {
+      "path": "app/src/preload.cjs",
+      "bytes": 1349
+    },
+    {
+      "path": "app/src/renderer.js",
+      "bytes": 13183
+    },
+    {
+      "path": "app/src/styles.css",
+      "bytes": 15249
+    },
+    {
+      "path": "app/src/summaries.cjs",
+      "bytes": 9083
+    },
+    {
+      "path": "app/src/summary-runner.cjs",
+      "bytes": 4706
+    },
+    {
+      "path": "app/test/cleanup.test.cjs",
+      "bytes": 2585
+    },
+    {
+      "path": "app/test/monitor.test.cjs",
+      "bytes": 3340
+    },
+    {
+      "path": "app/tools/launch-web.cjs",
+      "bytes": 1366
+    },
+    {
+      "path": "app/web/README.md",
+      "bytes": 1018
+    },
+    {
+      "path": "app/web/adapter.js",
+      "bytes": 2660
+    },
+    {
+      "path": "app/web/server.cjs",
+      "bytes": 11998
+    },
+    {
+      "path": "app/web/web.css",
+      "bytes": 1106
+    },
+    {
+      "path": "auth-proxy.cjs",
+      "bytes": 3179
+    },
+    {
+      "path": "autostart.sh",
+      "bytes": 1789
+    },
+    {
+      "path": "deploy/bili-auth.service.example",
+      "bytes": 483
+    },
+    {
+      "path": "deploy/bili-autostart.service.example",
+      "bytes": 212
+    },
+    {
+      "path": "deploy/bili-autostart.timer.example",
+      "bytes": 188
+    },
+    {
+      "path": "deploy/bili-web.service.example",
+      "bytes": 560
+    }
+  ]
+}

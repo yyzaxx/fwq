@@ -1,0 +1,11 @@
+[Unit]
+Description=每天 23:00 启动 BiliLottery 任务
+
+[Timer]
+OnCalendar=*-*-* 23:00:00
+AccuracySec=30s
+Persistent=false
+Unit=bili-autostart.service
+
+[Install]
+WantedBy=timers.target

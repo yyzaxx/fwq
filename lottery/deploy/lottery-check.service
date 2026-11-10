@@ -1,0 +1,10 @@
+[Unit]
+Description=LotteryAutoScript check (中奖检查，一次性)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/lottery/src
+Environment=LOG_DIR=/opt/lottery/logs
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/lottery/src/deploy/run.sh check
+TimeoutStartSec=15min

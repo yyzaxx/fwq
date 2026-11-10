@@ -1,0 +1,15 @@
+[Unit]
+Description=WorkBuddy Daily 自动签到（国内版 + 国际版）
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/workbuddy/app
+Environment=TZ=Asia/Shanghai
+Environment=PYTHONUNBUFFERED=1
+Environment=WORKBUDDY_STATE_DIR=/opt/workbuddy/state
+ExecStart=/bin/bash /opt/workbuddy/run.sh
+TimeoutStartSec=3600
+Nice=10

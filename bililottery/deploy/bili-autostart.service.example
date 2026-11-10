@@ -1,0 +1,10 @@
+[Unit]
+Description=BiliLottery 定时启动一轮抽奖任务
+After=bili-web.service
+Wants=bili-web.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/bin/bash /opt/bililottery/autostart.sh
+TimeoutStartSec=180

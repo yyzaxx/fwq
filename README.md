@@ -31,3 +31,15 @@ DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
 ## 新服务器联合部署
 
 从 GitHub 拉取并部署 ClawChat、远程浏览器和 Listing，统一入口见 [deploy/README.md](deploy/README.md)。其中包含目录、依赖、技能安装、服务与反代顺序、账号登录和实际验收要求；[deploy/AGENT-HANDOFF.txt](deploy/AGENT-HANDOFF.txt) 可直接交给新服务器上的 AI 执行。
+
+## 其余业务程序
+
+| 目录 | 内容 |
+| --- | --- |
+| [workbuddy/](workbuddy/) | WorkBuddy Daily v3.39、控制台、登录/运行脚本和定时器模板 |
+| [bililottery/](bililottery/) | 当前 B站抽奖 Web 完整部署源码、引擎、认证代理和定时启动脚本 |
+| [lottery/](lottery/) | 原独立 LotteryAutoScript v2.11.3 和中奖检查服务 |
+| [octop/](octop/) | Octop 与4个配套组件的安装版源码/网页资源、许可证和依赖版本 |
+| [server-runtime/](server-runtime/) | Nginx、Docker 等基础软件的版本与安装边界 |
+
+完整目录及新机器部署入口见 [deploy/ALL-PROGRAMS.md](deploy/ALL-PROGRAMS.md)。第三方代码保留各自版权和许可证；所有新收录目录均不包含现有账号凭据、Cookie、数据库、运行日志或个人记忆。盘搜 Pansou 已删除，不收录或恢复。

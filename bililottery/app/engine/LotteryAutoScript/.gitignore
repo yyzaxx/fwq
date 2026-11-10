@@ -1,0 +1,13 @@
+node_modules/
+.vscode/
+tests/
+dyids/
+lottery_info/
+lottery_dyids/
+dist/
+.env
+*.log
+*.zip
+package-lock.json
+env.js
+my_config.js

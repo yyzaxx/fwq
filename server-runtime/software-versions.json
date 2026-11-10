@@ -1,0 +1,76 @@
+{
+  "recordedAt": "2026-11-10T08:31:47.575219+00:00",
+  "operatingSystem": {
+    "NAME": "TencentOS Server",
+    "VERSION": "4",
+    "ID": "tencentos",
+    "VERSION_ID": "4"
+  },
+  "architecture": "x86_64",
+  "node": "v24.22.1",
+  "python": "3.11.6",
+  "systemPackages": [
+    {
+      "command": "nginx",
+      "package": "nginx-core",
+      "version": "1.29.8-1.tl4.ap.1",
+      "architecture": "x86_64"
+    },
+    {
+      "command": "docker",
+      "package": "docker-ce-cli",
+      "version": "29.7.2-1.oc9",
+      "architecture": "x86_64"
+    },
+    {
+      "command": "containerd",
+      "package": "containerd",
+      "version": "1.7.29-3.tl4",
+      "architecture": "x86_64"
+    },
+    {
+      "command": "sshd",
+      "package": "openssh-server",
+      "version": "9.3p2-16.tl4",
+      "architecture": "x86_64"
+    },
+    {
+      "command": "firewalld",
+      "package": "firewalld",
+      "version": "1.2.6-4.tl4",
+      "architecture": "noarch"
+    },
+    {
+      "command": "Xvfb",
+      "package": "xorg-x11-server-Xvfb",
+      "version": "21.1.8-18.tl4",
+      "architecture": "x86_64"
+    },
+    {
+      "command": "openbox",
+      "package": "openbox",
+      "version": "3.6.1-5.oc9",
+      "architecture": "x86_64"
+    },
+    {
+      "command": "x11vnc",
+      "package": "x11vnc",
+      "version": "0.9.16-2.oc9",
+      "architecture": "x86_64"
+    },
+    {
+      "command": "websockify",
+      "package": "python3-websockify",
+      "version": "0.11.0-5.oc9",
+      "architecture": "noarch"
+    },
+    {
+      "command": "chromium-browser",
+      "package": "ungoogled-chromium",
+      "version": "156.0.8078.79-1.oc9",
+      "architecture": "x86_64"
+    }
+  ],
+  "scope": "已安装运行软件版本，不包含系统二进制、身份凭据或私人配置",
+  "codex": "codex-cli 0.167.0"
+}

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run LotteryAutoScript check every 30min
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=30min
+AccuracySec=1min
+Unit=lottery-check.service
+
+[Install]
+WantedBy=timers.target

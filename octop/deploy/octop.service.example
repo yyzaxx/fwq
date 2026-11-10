@@ -1,0 +1,24 @@
+[Unit]
+Description=Octop AI Server
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=3
+
+[Service]
+Type=simple
+Environment="HOME=/root"
+Environment="OCTOP_HOME=/root/.octop"
+Environment="OCTOP_SERVICE_MODE=systemd"
+ExecStart=/opt/octop/venv/bin/octop run
+Restart=on-failure
+RestartSec=30
+MemoryAccounting=yes
+MemoryHigh=60%
+MemoryMax=75%
+MemorySwapMax=512M
+OOMPolicy=kill
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

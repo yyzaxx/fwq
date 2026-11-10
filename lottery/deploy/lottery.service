@@ -1,0 +1,33 @@
+[Unit]
+Description=Bilibili lottery auto script (LotteryAutoScript start)
+After=network-online.target
+Wants=network-online.target
+# 连续失败太多次就停下，别一直硬撞风控（这两项属于 [Unit] 段，放 [Service] 会被忽略）
+StartLimitBurst=3
+StartLimitIntervalSec=1800
+
+[Service]
+Type=simple
+# 代码在 /opt/lottery/src，日志在 /opt/lottery/logs
+WorkingDirectory=/opt/lottery/src
+Environment=LOG_DIR=/opt/lottery/logs
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/lottery/src/deploy/run.sh start
+Restart=on-failure
+RestartSec=60
+
+# 降权：先用 root 跑通，再建普通用户并把 /opt/lottery 相关目录 chown 给它
+# 注意：改成 User=logviewer 后，日志就由它写，网页上的「清空」也能用
+# User=logviewer
+# Group=logviewer
+
+# 基础加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

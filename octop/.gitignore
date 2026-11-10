@@ -1,0 +1,9 @@
+venv/
+.venv/
+runtime/
+.octop/
+*.db
+*.db-*
+*.log
+__pycache__/
+*.pyc

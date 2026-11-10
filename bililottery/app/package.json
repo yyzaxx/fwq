@@ -1,0 +1,44 @@
+{
+  "name": "bili-lottery-desktop",
+  "version": "1.0.0",
+  "description": "LotteryAutoScript 绿色便携桌面外壳，外置源码运行",
+  "main": "src/main.cjs",
+  "author": "WorkBuddy",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "scripts": {
+    "web": "node web/server.cjs",
+    "start": "electron .",
+    "test": "node --test test/*.test.cjs",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^39.2.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "cn.workbuddy.bili.lottery.desktop",
+    "productName": "BiliLotteryDesktop",
+    "asar": true,
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "icon": "assets/icon.png",
+      "target": [
+        "portable"
+      ],
+      "artifactName": "BiliLotteryDesktop-${version}-portable.exe"
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    },
+    "compression": "normal",
+    "electronDownload": {
+      "mirror": "https://npmmirror.com/mirrors/electron/"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+state/
+logs/
+workbuddy.env
+credentials.env
+panel.password
+panel.secret
+__pycache__/
+*.pyc
+*.log
+.venv/

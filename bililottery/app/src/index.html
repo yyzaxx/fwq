@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bili抽奖助手 · 绿色版</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">B</div>
+                <div>
+                    <strong>Bili抽奖助手</strong>
+                    <span>绿色桌面版</span>
+                </div>
+            </div>
+            <nav class="nav">
+                <button class="nav-item active" data-page="dashboard"><span class="nav-index">01</span>控制台</button>
+                <button class="nav-item" data-page="summaries"><span class="nav-index">02</span>每日汇总</button>
+                <button class="nav-item" data-page="sources"><span class="nav-index">03</span>监控来源</button>
+                <button class="nav-item" data-page="interaction"><span class="nav-index">03</span>互动策略</button>
+                <button class="nav-item" data-page="account"><span class="nav-index">04</span>账号与引擎</button>
+                <button class="nav-item" data-page="logs"><span class="nav-index">05</span>运行日志</button>
+            </nav>
+            <div class="sidebar-bottom">
+                <button class="nav-item" data-page="about"><span class="nav-index">06</span>关于与许可</button>
+                <div class="portable-note">
+                    <span class="status-dot"></span>
+                    便携模式 · 数据本地保存
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <div>
+                    <h1 id="page-title">控制台</h1>
+                    <p id="page-subtitle">让重复操作有序运行，让每一步都看得见</p>
+                </div>
+                <div class="process-pill" id="process-pill"><span class="status-dot"></span><span id="process-text">空闲</span></div>
+            </header>
+
+            <section class="page active" id="page-dashboard">
+                <div class="hero-card">
+                    <div class="hero-copy">
+                        <span class="eyebrow">LOTTERY CONTROL CENTER</span>
+                        <h2>今天，也让抽奖任务<br>自己按部就班地完成。</h2>
+                        <p>基于外置 LotteryAutoScript 源码。先模拟检查，再决定是否执行真实互动。</p>
+                        <div class="hero-actions">
+                            <button class="btn btn-primary" id="btn-start">启动任务</button>
+                            <button class="btn btn-danger hidden" id="btn-stop">停止任务</button>
+                            <button class="btn btn-secondary action-button" data-action="check">检查中奖</button>
+                        </div>
+                    </div>
+                    <div class="hero-orbit" aria-hidden="true">
+                        <div class="orbit orbit-one"></div>
+                        <div class="orbit orbit-two"></div>
+                        <div class="orbit-center"><span>Bili</span><small>AUTO</small></div>
+                    </div>
+                </div>
+
+                <div class="stat-grid">
+                    <button class="stat-card" data-go="account">
+                        <span class="stat-label">账号状态</span>
+                        <strong id="stat-account">未登录</strong>
+                        <span class="stat-foot" id="stat-uid">填写 UID 后扫码登录</span>
+                    </button>
+                    <button class="stat-card" data-go="account">
+                        <span class="stat-label">外置引擎</span>
+                        <strong id="stat-engine">待配置</strong>
+                        <span class="stat-foot" id="stat-version">选择源码目录</span>
+                    </button>
+                    <button class="stat-card" data-go="interaction">
+                        <span class="stat-label">运行模式</span>
+                        <strong id="stat-mode">模拟运行</strong>
+                        <span class="stat-foot">默认不执行真实互动</span>
+                    </button>
+                </div>
+
+                <div class="content-grid">
+                    <section class="panel">
+                        <div class="panel-heading"><div><span class="section-kicker">QUICK START</span><h3>三步开始</h3></div></div>
+                        <ol class="steps">
+                            <li><span>1</span><div><strong>配置账号与源码</strong><p>选择外置源码，填写 UID，扫码登录。</p></div></li>
+                            <li><span>2</span><div><strong>选择监控来源</strong><p>按 UID、互动话题或专栏合集发现动态。</p></div></li>
+                            <li><span>3</span><div><strong>模拟后启动</strong><p>查看日志确认行为，再关闭模拟模式。</p></div></li>
+                        </ol>
+                    </section>
+                    <section class="panel safety-panel">
+                        <span class="section-kicker">SAFETY FIRST</span>
+                        <h3>互动之前，先看清楚</h3>
+                        <p>真实模式会关注、点赞或转发。请合理设置间隔，不要高频运行；遇到验证码或风控时应停止任务并手动检查。</p>
+                        <button class="text-button" data-go="interaction">检查互动策略 <span>→</span></button>
+                    </section>
+                </div>
+            </section>
+
+            <section class="page" id="page-summaries">
+                <form class="panel form-panel settings-form">
+                    <div class="panel-heading"><div><span class="section-kicker">DAILY ROUNDUP</span><h3>互动抽奖与预约抽奖汇总</h3><p>定向读取指定 UP 最近两篇汇总的完整正文，过滤到期条目。不会执行魔晶、积分商城等签到任务。</p></div></div>
+                    <label class="check-label"><input type="checkbox" data-setting="summarySource" id="summarySource"><span>启动时使用本页汇总作为唯一来源</span></label>
+                    <div class="field"><label for="summaryUid">汇总 UP 的 UID</label><input id="summaryUid" data-setting="summaryUid" inputmode="numeric" placeholder="492426375"></div>
+                    <div class="button-row"><button class="btn btn-secondary" type="submit">保存汇总设置</button><button class="btn btn-primary action-button" type="button" id="btn-summary-preview">读取汇总预览</button><button class="btn btn-secondary action-button" type="button" id="btn-summary-start" data-action="start">按当前模式启动汇总</button></div>
+                    <p class="fine-print">读取汇总后直接启动，逐条获取执行所需参数并处理，不再启动前整批校验。按汇总中的开奖或结束时间过滤到期活动。已参与或付费抽奖会跳过，每次只运行一轮。</p>
+                </form>
+                <form class="panel form-panel settings-form summary-panel">
+                    <div class="panel-heading"><div><span class="section-kicker">CLEANUP</span><h3>开奖后的转发清理</h3><p>每次启动汇总抽奖任务前，删除汇总开奖时间已超过24小时的已记录转发动态。</p></div></div>
+                    <label class="check-label"><input type="checkbox" data-setting="cleanupExpired" id="cleanupExpired"><span>启动汇总抽奖任务前自动清理</span></label>
+                    <div class="field"><label for="cleanupKeepIds">保留的动态 ID</label><textarea id="cleanupKeepIds" data-setting="cleanupKeepIds" rows="2" placeholder="原动态或自己转发的动态 ID，可用逗号或换行分隔"></textarea><small>中奖或延期活动建议保留。删掉转发可能影响领奖核验；开奖时间以汇总记录为准。</small></div>
+                    <div class="button-row"><button class="btn btn-secondary" type="submit">保存清理设置</button><button class="btn btn-secondary action-button" type="button" id="btn-cleanup-preview">预览可清理动态</button></div>
+                    <p class="fine-print" id="cleanup-status" role="status">尚未预览。只处理新版记录了准确转发 ID 的动态，无法可靠对应的旧动态会保留。</p>
+                    <div id="cleanup-items" class="summary-sources"></div>
+                </form>
+                <section class="panel summary-panel">
+                    <div class="panel-heading"><div><h3>本次读取结果</h3><p id="summary-status" role="status">尚未读取汇总</p></div></div>
+                    <div id="summary-sources" class="summary-sources"></div>
+                    <div class="summary-table-wrap"><table class="summary-table"><thead><tr><th>类型</th><th>发起者 / 奖品</th><th>截止时间（北京时间）</th><th>状态</th><th>入口</th></tr></thead><tbody id="summary-items"></tbody></table></div>
+                </section>
+            </section>
+
+            <section class="page" id="page-sources">
+                <form class="settings-form" data-form="sources">
+                    <section class="panel form-panel">
+                        <div class="panel-heading"><div><span class="section-kicker">DISCOVERY</span><h3>从哪里发现抽奖动态</h3><p>至少填写一种来源，多项来源会按专栏、UID、话题的顺序处理。</p></div></div>
+                        <div class="field">
+                            <label for="uids">监控用户 UID</label>
+                            <textarea id="uids" data-setting="uids" rows="5" placeholder="每行一个数字 UID，或用逗号分隔"></textarea>
+                            <small>监控这些用户转发过的抽奖动态，只填写数字，不需要主页链接。</small>
+                        </div>
+                        <div class="form-grid two">
+                            <div class="field">
+                                <label for="tags">互动话题</label>
+                                <textarea id="tags" data-setting="tags" rows="4" placeholder="互动抽奖"></textarea>
+                                <small>例如：互动抽奖、转发抽奖；无需输入 # 号。</small>
+                            </div>
+                            <div class="field">
+                                <label for="articles">专栏合集关键词</label>
+                                <textarea id="articles" data-setting="articles" rows="4" placeholder="抽奖合集"></textarea>
+                                <small>用于搜索汇总抽奖链接的专栏内容。</small>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="panel form-panel">
+                        <div class="panel-heading"><div><span class="section-kicker">SCAN RANGE</span><h3>扫描范围</h3></div></div>
+                        <div class="form-grid three">
+                            <div class="field"><label for="uidPages">UID 扫描页数</label><input id="uidPages" data-setting="uidPages" type="number" min="1" max="20"></div>
+                            <div class="field"><label for="tagPages">话题扫描页数</label><input id="tagPages" data-setting="tagPages" type="number" min="1" max="20"></div>
+                            <div class="field"><label for="articlePages">专栏扫描页数</label><input id="articlePages" data-setting="articlePages" type="number" min="1" max="20"></div>
+                            <div class="field"><label for="maxCreateDays">动态不超过（天）</label><input id="maxCreateDays" data-setting="maxCreateDays" type="number" min="1" max="365"></div>
+                            <div class="field"><label for="maxDrawDays">开奖不超过（天）</label><input id="maxDrawDays" data-setting="maxDrawDays" type="number" min="0" max="3650"><small>填 0 表示不限制</small></div>
+                            <div class="field"><label for="minFollower">UP 最低粉丝数</label><input id="minFollower" data-setting="minFollower" type="number" min="0"></div>
+                        </div>
+                    </section>
+                    <div class="save-bar"><span>修改后保存，才会写入外置运行配置。</span><button class="btn btn-primary" type="submit">保存监控设置</button></div>
+                </form>
+            </section>
+
+            <section class="page" id="page-interaction">
+                <form class="settings-form" data-form="interaction">
+                    <section class="panel mode-panel">
+                        <div>
+                            <span class="section-kicker">DRY RUN</span>
+                            <h3>模拟运行保护</h3>
+                            <p>开启后仅获取和分析动态，不执行真实抽奖互动。首次使用建议保持开启。</p>
+                        </div>
+                        <label class="switch"><input type="checkbox" data-setting="dryRun"><span class="slider"></span></label>
+                    </section>
+                    <section class="panel form-panel">
+                        <div class="panel-heading"><div><span class="section-kicker">BEHAVIOR</span><h3>参与方式</h3></div></div>
+                        <div class="form-grid two">
+                            <div class="field"><label for="model">抽奖类型</label><select id="model" data-setting="model"><option value="10">仅官方互动抽奖</option><option value="01">仅非官方抽奖</option><option value="11">官方与非官方</option><option value="00">关闭自动抽奖</option></select></div>
+                            <div class="field"><label for="chatmodel">评论策略</label><select id="chatmodel" data-setting="chatmodel"><option value="00">不自动评论</option><option value="10">仅评论官方抽奖</option><option value="01">仅评论非官方抽奖</option><option value="11">评论全部类型</option></select></div>
+                            <div class="field"><label for="relayText">转发文字</label><input id="relayText" data-setting="relayText" maxlength="200"></div>
+                            <div class="field"><label for="chatText">评论文字</label><input id="chatText" data-setting="chatText" maxlength="200"></div>
+                        </div>
+                        <div class="check-row">
+                            <label class="check-label"><input type="checkbox" data-setting="disableReserve"><span>不参与直播预约抽奖</span></label>
+                            <label class="check-label"><input type="checkbox" data-setting="onlyFollowed"><span>仅参与已关注 UP 的抽奖</span></label>
+                        </div>
+                    </section>
+                    <section class="panel form-panel">
+                        <div class="panel-heading"><div><span class="section-kicker">PACE</span><h3>运行节奏</h3><p>过短的间隔更容易触发平台风控，不建议追求速度。</p></div></div>
+                        <div class="form-grid three">
+                            <div class="field"><label for="waitSeconds">转发间隔（秒）</label><input id="waitSeconds" data-setting="waitSeconds" type="number" min="10" max="3600"><small>实际会有一定随机浮动</small></div>
+                            <div class="field"><label for="searchWaitMs">检索间隔（毫秒）</label><input id="searchWaitMs" data-setting="searchWaitMs" type="number" min="1000" max="60000" step="100"></div>
+                            <div class="field"><label for="loopMinutes">循环间隔（分钟）</label><input id="loopMinutes" data-setting="loopMinutes" type="number" min="0" max="10080"><small>填 0 表示运行一轮后结束</small></div>
+                        </div>
+                    </section>
+                    <div class="save-bar"><span>真实互动前，请再次确认以上策略。</span><button class="btn btn-primary" type="submit">保存互动策略</button></div>
+                </form>
+            </section>
+
+            <section class="page" id="page-account">
+                <div class="content-grid account-layout">
+                    <form class="panel form-panel settings-form" data-form="account">
+                        <div class="panel-heading"><div><span class="section-kicker">ACCOUNT</span><h3>B站账号</h3><p>扫码登录由原版引擎处理，Cookie 仅保存在本地 data 目录。</p></div></div>
+                        <div class="account-status-card"><span class="avatar">B</span><div><strong id="account-title">尚未登录</strong><p id="account-detail">先填写 UID 并保存，再开始扫码</p></div><span class="account-badge" id="account-badge">离线</span></div>
+                        <div class="form-grid two">
+                            <div class="field"><label for="uid">B站 UID</label><input id="uid" data-setting="uid" inputmode="numeric" placeholder="个人空间地址中的数字"></div>
+                            <div class="field"><label for="note">账号备注</label><input id="note" data-setting="note" maxlength="30"></div>
+                        </div>
+                        <div class="button-row">
+                            <button class="btn btn-primary" type="submit">保存账号</button>
+                            <button class="btn btn-secondary action-button" type="button" data-action="login">扫码登录</button>
+                            <button class="btn btn-ghost action-button" type="button" data-action="account">检查账号</button>
+                        </div>
+                    </form>
+
+                    <section class="panel form-panel">
+                        <div class="panel-heading"><div><span class="section-kicker">EXTERNAL SOURCE</span><h3>外置抽奖源码</h3><p>源码没有打包进 EXE，可独立替换和更新。</p></div></div>
+                        <div class="engine-state" id="engine-state"><span class="status-dot"></span><span>正在检查</span></div>
+                        <div class="field"><label for="enginePath">源码目录</label><div class="path-picker"><input id="enginePath" readonly placeholder="选择包含 main.js 的目录"><button class="btn btn-secondary" id="btn-choose-engine" type="button">选择目录</button></div></div>
+                        <div class="path-details" id="engine-details">尚未配置</div>
+                        <div class="button-row">
+                            <button class="btn btn-ghost" id="btn-open-engine" type="button">打开源码目录</button>
+                            <button class="btn btn-ghost action-button" type="button" data-action="update">检查引擎更新</button>
+                        </div>
+                    </section>
+                </div>
+                <section class="panel form-panel">
+                    <div class="panel-heading"><div><span class="section-kicker">PORTABLE DATA</span><h3>绿色版数据</h3><p id="root-path">正在读取软件目录</p></div></div>
+                    <div class="button-row"><button class="btn btn-secondary" id="btn-open-data">打开数据目录</button><button class="btn btn-ghost" id="btn-open-config">编辑高级配置</button></div>
+                    <p class="fine-print">高级配置保存后，若在界面再次保存设置，界面管理的字段会被重新生成。请勿分享包含 Cookie 的 env.js。</p>
+                </section>
+            </section>
+
+            <section class="page" id="page-logs">
+                <section class="panel log-panel">
+                    <div class="log-toolbar">
+                        <div><span class="section-kicker">LIVE OUTPUT</span><h3>实时运行日志</h3></div>
+                        <div class="button-row"><button class="btn btn-ghost" id="btn-clear-log">清空显示</button><button class="btn btn-secondary" id="btn-open-logs">打开日志目录</button></div>
+                    </div>
+                    <div class="log-notice">登录二维码会以清晰图片弹出，请使用哔哩哔哩手机 App 扫码；敏感 Cookie 会自动遮蔽。</div>
+                    <pre id="log-output" tabindex="0">[桌面助手] 等待任务启动。&#10;</pre>
+                    <div class="log-footer"><label class="check-label"><input type="checkbox" id="auto-scroll" checked><span>自动滚动到底部</span></label><span id="log-count">0 条输出</span></div>
+                </section>
+            </section>
+
+            <section class="page" id="page-about">
+                <section class="panel about-hero">
+                    <div class="brand-mark large">B</div>
+                    <div><span class="section-kicker">ABOUT</span><h2>Bili抽奖助手 · 绿色版</h2><p>桌面外壳 v<span id="app-version">1.0.0</span>，基于 LotteryAutoScript 外置源码运行。</p></div>
+                </section>
+                <div class="content-grid">
+                    <section class="panel about-section"><h3>结构清晰，方便维护</h3><p>EXE 只包含桌面界面。外置引擎位于 engine/LotteryAutoScript，也可选择其他源码目录；账号、运行配置和记录位于 data，日志位于 logs。</p><button class="text-button" data-url="https://github.com/shanmiteko/LotteryAutoScript">访问原项目 <span>→</span></button></section>
+                    <section class="panel about-section"><h3>开源与责任</h3><p>原项目采用 GPL-3.0-or-later 许可。本桌面外壳同样按 GPL-3.0-or-later 提供，不附带任何中奖保证。使用自动化互动可能触发平台风控，请自行评估并遵守平台规则。</p><button class="text-button" data-url="https://www.gnu.org/licenses/gpl-3.0">查看许可证 <span>→</span></button></section>
+                </div>
+                <section class="panel about-section"><h3>边界说明</h3><p>自动清理只处理已记录、开奖超过24小时且核对为本账号转发的动态，不取消关注。中奖检测依赖关键词，可能漏报或误报；最终结果以 B 站站内消息为准。</p></section>
+            </section>
+        </main>
+    </div>
+    <dialog id="login-qr-dialog" aria-labelledby="login-qr-title" aria-describedby="login-qr-help">
+        <h2 id="login-qr-title">扫码登录 B 站</h2>
+        <p id="login-qr-help">请使用哔哩哔哩手机 App 扫码，并在手机上确认登录。</p>
+        <div class="login-qr-image"><img id="login-qr-image" alt="B站登录二维码"></div>
+        <p class="fine-print">二维码过期后，请取消并重新点击“扫码登录”。</p>
+        <button class="btn btn-secondary" id="btn-cancel-login" type="button" autofocus>取消登录</button>
+    </dialog>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="renderer.js"></script>
+</body>
+</html>

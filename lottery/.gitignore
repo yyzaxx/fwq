@@ -1,0 +1,6 @@
+node_modules/
+my_config.js
+env.js
+*.bak
+logs/
+dyids/

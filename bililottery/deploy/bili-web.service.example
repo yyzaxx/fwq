@@ -1,0 +1,25 @@
+[Unit]
+Description=BiliLottery Web (upstream, 127.0.0.1:8787)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bili
+Group=bili
+WorkingDirectory=/opt/bililottery/app
+Environment=BILI_WEB_PORT=8787
+Environment=NODE_ENV=production
+ExecStart=/usr/local/bin/node /opt/bililottery/app/web/server.cjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/bililottery/app/web-data
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

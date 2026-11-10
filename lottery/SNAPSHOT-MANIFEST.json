@@ -1,0 +1,421 @@
+{
+  "kind": "source and deployment files only",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "bytes": 100
+    },
+    {
+      "path": ".eslintrc.json",
+      "bytes": 357
+    },
+    {
+      "path": ".github/FUNDING.yml",
+      "bytes": 88
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.yaml",
+      "bytes": 2667
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "bytes": 28
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yaml",
+      "bytes": 431
+    },
+    {
+      "path": ".github/workflows/docker.yml",
+      "bytes": 844
+    },
+    {
+      "path": ".github/workflows/mirror.yml",
+      "bytes": 660
+    },
+    {
+      "path": ".github/workflows/pkg.yml",
+      "bytes": 2091
+    },
+    {
+      "path": ".github/workflows/windows-test.yml",
+      "bytes": 1228
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 53
+    },
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 39874
+    },
+    {
+      "path": "Dockerfile",
+      "bytes": 254
+    },
+    {
+      "path": "Dockerfile.pkg-arm64",
+      "bytes": 900
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 35149
+    },
+    {
+      "path": "README.md",
+      "bytes": 18887
+    },
+    {
+      "path": "SERVER-DEPLOYMENT.md",
+      "bytes": 1374
+    },
+    {
+      "path": "deploy/logrotate-lottery",
+      "bytes": 238
+    },
+    {
+      "path": "deploy/lottery-check.service",
+      "bytes": 281
+    },
+    {
+      "path": "deploy/lottery-check.service.example",
+      "bytes": 281
+    },
+    {
+      "path": "deploy/lottery-check.timer",
+      "bytes": 183
+    },
+    {
+      "path": "deploy/lottery-check.timer.example",
+      "bytes": 340
+    },
+    {
+      "path": "deploy/lottery.service",
+      "bytes": 958
+    },
+    {
+      "path": "deploy/run.sh",
+      "bytes": 954
+    },
+    {
+      "path": "doc/TG_PUSH.md",
+      "bytes": 913
+    },
+    {
+      "path": "doc/chat_captcha_orc.md",
+      "bytes": 307
+    },
+    {
+      "path": "doc/linux_schedule.md",
+      "bytes": 1597
+    },
+    {
+      "path": "doc/pic/DD_bot.png",
+      "bytes": 55142
+    },
+    {
+      "path": "doc/pic/TG_PUSH1.png",
+      "bytes": 47278
+    },
+    {
+      "path": "doc/pic/TG_PUSH2.png",
+      "bytes": 64370
+    },
+    {
+      "path": "doc/pic/TG_PUSH3.png",
+      "bytes": 24125
+    },
+    {
+      "path": "doc/pic/bark.jpg",
+      "bytes": 433802
+    },
+    {
+      "path": "doc/pic/behind.png",
+      "bytes": 23251
+    },
+    {
+      "path": "doc/pic/byhand.png",
+      "bytes": 91881
+    },
+    {
+      "path": "doc/pic/check_me.png",
+      "bytes": 66269
+    },
+    {
+      "path": "doc/pic/close.png",
+      "bytes": 65620
+    },
+    {
+      "path": "doc/pic/cookie2.png",
+      "bytes": 97015
+    },
+    {
+      "path": "doc/pic/create_pat.png",
+      "bytes": 68451
+    },
+    {
+      "path": "doc/pic/crontab.png",
+      "bytes": 40646
+    },
+    {
+      "path": "doc/pic/download.png",
+      "bytes": 189502
+    },
+    {
+      "path": "doc/pic/fork.png",
+      "bytes": 4284
+    },
+    {
+      "path": "doc/pic/getCookies.png",
+      "bytes": 82509
+    },
+    {
+      "path": "doc/pic/getCookies2.png",
+      "bytes": 129623
+    },
+    {
+      "path": "doc/pic/httponly.png",
+      "bytes": 3830
+    },
+    {
+      "path": "doc/pic/image-envjs.png",
+      "bytes": 270023
+    },
+    {
+      "path": "doc/pic/image-start.png",
+      "bytes": 678652
+    },
+    {
+      "path": "doc/pic/image_download.png",
+      "bytes": 114866
+    },
+    {
+      "path": "doc/pic/lottery_start.png",
+      "bytes": 225883
+    },
+    {
+      "path": "doc/pic/new_secret.png",
+      "bytes": 23996
+    },
+    {
+      "path": "doc/pic/nodejs.png",
+      "bytes": 341416
+    },
+    {
+      "path": "doc/pic/ocr0.png",
+      "bytes": 335338
+    },
+    {
+      "path": "doc/pic/ocr1.png",
+      "bytes": 298867
+    },
+    {
+      "path": "doc/pic/push+.png",
+      "bytes": 6432
+    },
+    {
+      "path": "doc/pic/ql0.gif",
+      "bytes": 2620887
+    },
+    {
+      "path": "doc/pic/ql1.png",
+      "bytes": 36039
+    },
+    {
+      "path": "doc/pic/ql2.png",
+      "bytes": 192624
+    },
+    {
+      "path": "doc/pic/ql3.gif",
+      "bytes": 2020093
+    },
+    {
+      "path": "doc/pic/serverchan.png",
+      "bytes": 6798
+    },
+    {
+      "path": "doc/pic/shezhi_renwu.png",
+      "bytes": 65616
+    },
+    {
+      "path": "doc/pic/start_renwu.png",
+      "bytes": 160957
+    },
+    {
+      "path": "doc/pic/step_menu.png",
+      "bytes": 27840
+    },
+    {
+      "path": "doc/pic/success.png",
+      "bytes": 68098
+    },
+    {
+      "path": "doc/pic/update_fork.png",
+      "bytes": 48027
+    },
+    {
+      "path": "doc/run_use_docker.md",
+      "bytes": 824
+    },
+    {
+      "path": "doc/run_use_ql.md",
+      "bytes": 255
+    },
+    {
+      "path": "doc/run_use_sc.md",
+      "bytes": 1309
+    },
+    {
+      "path": "doc/win_schedule.md",
+      "bytes": 1930
+    },
+    {
+      "path": "env.example.js",
+      "bytes": 3705
+    },
+    {
+      "path": "lib/account.js",
+      "bytes": 644
+    },
+    {
+      "path": "lib/check.js",
+      "bytes": 4747
+    },
+    {
+      "path": "lib/clear.js",
+      "bytes": 5975
+    },
+    {
+      "path": "lib/core/monitor.js",
+      "bytes": 30549
+    },
+    {
+      "path": "lib/core/searcher.js",
+      "bytes": 23737
+    },
+    {
+      "path": "lib/data/config.js",
+      "bytes": 10749
+    },
+    {
+      "path": "lib/data/global_var.js",
+      "bytes": 2441
+    },
+    {
+      "path": "lib/helper/d_storage.js",
+      "bytes": 1477
+    },
+    {
+      "path": "lib/helper/event_bus.js",
+      "bytes": 490
+    },
+    {
+      "path": "lib/helper/notify.js",
+      "bytes": 39183
+    },
+    {
+      "path": "lib/helper/randomDynamic.js",
+      "bytes": 1311
+    },
+    {
+      "path": "lib/index.js",
+      "bytes": 945
+    },
+    {
+      "path": "lib/login.js",
+      "bytes": 1899
+    },
+    {
+      "path": "lib/lottery.js",
+      "bytes": 2607
+    },
+    {
+      "path": "lib/net/api.bili.js",
+      "bytes": 3157
+    },
+    {
+      "path": "lib/net/bili.js",
+      "bytes": 43969
+    },
+    {
+      "path": "lib/net/http.js",
+      "bytes": 7020
+    },
+    {
+      "path": "lib/update.js",
+      "bytes": 3544
+    },
+    {
+      "path": "lib/utils.js",
+      "bytes": 18502
+    },
+    {
+      "path": "main.js",
+      "bytes": 8019
+    },
+    {
+      "path": "my_config.example.js",
+      "bytes": 14345
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 108777
+    },
+    {
+      "path": "package.json",
+      "bytes": 1426
+    },
+    {
+      "path": "script/build/changelog.sh",
+      "bytes": 868
+    },
+    {
+      "path": "script/build/pkg.sh",
+      "bytes": 1727
+    },
+    {
+      "path": "script/docker/init.sh",
+      "bytes": 6482
+    },
+    {
+      "path": "script/qinglong/init.sh",
+      "bytes": 638
+    },
+    {
+      "path": "test/ai.test.js",
+      "bytes": 7934
+    },
+    {
+      "path": "test/api.test.js",
+      "bytes": 1630
+    },
+    {
+      "path": "test/article.test.js",
+      "bytes": 542
+    },
+    {
+      "path": "test/dyidSearch.test.js",
+      "bytes": 405
+    },
+    {
+      "path": "test/dynamic_card.test.js",
+      "bytes": 1216
+    },
+    {
+      "path": "test/index.js",
+      "bytes": 365
+    },
+    {
+      "path": "test/ocr.test.js",
+      "bytes": 723
+    },
+    {
+      "path": "test/offline/bili-api.js",
+      "bytes": 6446
+    },
+    {
+      "path": "test/util.js",
+      "bytes": 203
+    }
+  ]
+}

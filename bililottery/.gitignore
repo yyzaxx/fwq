@@ -1,0 +1,6 @@
+app/web-data/
+proxy.password
+*.log
+**/node_modules/
+**/env.js
+**/my_config.js

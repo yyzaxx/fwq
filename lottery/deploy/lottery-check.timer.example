@@ -1,0 +1,14 @@
+[Unit]
+Description=Run LotteryAutoScript check every 1h
+
+[Timer]
+# 开机 5 分钟后跑第一次，之后每 1 小时一次
+OnBootSec=5min
+OnUnitActiveSec=1h
+AccuracySec=1min
+# 开机那一轮加随机延迟，避免和 start 的启动瞬间撞在一起
+RandomizedDelaySec=2min
+Unit=lottery-check.service
+
+[Install]
+WantedBy=timers.target

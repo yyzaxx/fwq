@@ -1,0 +1,173 @@
+{
+  "kind": "source and deployment files only",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 103
+    },
+    {
+      "path": "README.md",
+      "bytes": 2409
+    },
+    {
+      "path": "app/.github/workflows/workbuddy.yml",
+      "bytes": 4861
+    },
+    {
+      "path": "app/.gitignore",
+      "bytes": 421
+    },
+    {
+      "path": "app/CHANGELOG.md",
+      "bytes": 24348
+    },
+    {
+      "path": "app/LICENSE",
+      "bytes": 1064
+    },
+    {
+      "path": "app/NOTICE.md",
+      "bytes": 6285
+    },
+    {
+      "path": "app/README.md",
+      "bytes": 55288
+    },
+    {
+      "path": "app/archive/README.md",
+      "bytes": 1759
+    },
+    {
+      "path": "app/archive/school_season_2026.py",
+      "bytes": 12753
+    },
+    {
+      "path": "app/assets/donate-alipay.jpg",
+      "bytes": 105793
+    },
+    {
+      "path": "app/assets/donate-wechat.png",
+      "bytes": 160528
+    },
+    {
+      "path": "app/credits_report.py",
+      "bytes": 26052
+    },
+    {
+      "path": "app/daily_forward.py",
+      "bytes": 4879
+    },
+    {
+      "path": "app/docs/README.en.md",
+      "bytes": 3718
+    },
+    {
+      "path": "app/docs/README.ja.md",
+      "bytes": 4068
+    },
+    {
+      "path": "app/docs/README.ko.md",
+      "bytes": 3783
+    },
+    {
+      "path": "app/docs/README.pt-BR.md",
+      "bytes": 3685
+    },
+    {
+      "path": "app/docs/README.zh-Hant.md",
+      "bytes": 3206
+    },
+    {
+      "path": "app/requirements.txt",
+      "bytes": 19
+    },
+    {
+      "path": "app/tests/test_channel_limit_1105.py",
+      "bytes": 2583
+    },
+    {
+      "path": "app/tests/test_credits_report.py",
+      "bytes": 8077
+    },
+    {
+      "path": "app/tests/test_intl_lock_report_1105.py",
+      "bytes": 18905
+    },
+    {
+      "path": "app/tests/test_task_snapshot_1105.py",
+      "bytes": 33586
+    },
+    {
+      "path": "app/tests/test_token_concurrency.py",
+      "bytes": 4274
+    },
+    {
+      "path": "app/tests/test_token_integration.py",
+      "bytes": 7480
+    },
+    {
+      "path": "app/tests/test_token_regression.py",
+      "bytes": 13704
+    },
+    {
+      "path": "app/tests/test_workbuddy_core.py",
+      "bytes": 92597
+    },
+    {
+      "path": "app/tests/test_workbuddy_intl.py",
+      "bytes": 3049
+    },
+    {
+      "path": "app/workbuddy_daily.py",
+      "bytes": 269179
+    },
+    {
+      "path": "app/workbuddy_intl_daily.py",
+      "bytes": 41881
+    },
+    {
+      "path": "app/workbuddy_intl_login.py",
+      "bytes": 10625
+    },
+    {
+      "path": "app/workbuddy_login.py",
+      "bytes": 7814
+    },
+    {
+      "path": "credentials.env.example",
+      "bytes": 137
+    },
+    {
+      "path": "deploy/workbuddy-panel.service.example",
+      "bytes": 437
+    },
+    {
+      "path": "deploy/workbuddy.service.example",
+      "bytes": 385
+    },
+    {
+      "path": "deploy/workbuddy.timer.example",
+      "bytes": 262
+    },
+    {
+      "path": "login.sh",
+      "bytes": 1689
+    },
+    {
+      "path": "panel.py",
+      "bytes": 68404
+    },
+    {
+      "path": "run.sh",
+      "bytes": 1547
+    },
+    {
+      "path": "status.sh",
+      "bytes": 2196
+    },
+    {
+      "path": "workbuddy.env.example",
+      "bytes": 149
+    }
+  ]
+}

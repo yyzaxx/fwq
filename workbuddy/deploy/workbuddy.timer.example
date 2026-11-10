@@ -1,0 +1,13 @@
+[Unit]
+Description=WorkBuddy Daily 定时器（北京时间 07:17 / 12:17 / 23:37）
+
+[Timer]
+OnCalendar=*-*-* 07:17:00
+OnCalendar=*-*-* 12:17:00
+OnCalendar=*-*-* 23:37:00
+Persistent=true
+AccuracySec=1min
+Unit=workbuddy.service
+
+[Install]
+WantedBy=timers.target

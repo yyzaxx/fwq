@@ -1,0 +1,2 @@
+[console_scripts]
+octop = octop.cli.main:cli
