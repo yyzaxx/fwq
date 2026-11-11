@@ -1,0 +1,11 @@
+{
+  "software": "1Panel",
+  "edition": "Community",
+  "version": "v2.4.2",
+  "platform": "linux-amd64",
+  "package_url": "https://resource.fit2cloud.com/1panel/package/v2/stable/v2.4.2/release/1panel-v2.4.2-linux-amd64.tar.gz",
+  "sha256": "5e2bbe6e88c1fe019ee33c9b8e63abd64ca73906c7101faf1e2be9b14449ad03",
+  "verified_on": "2026-11-11",
+  "upstream": "https://github.com/1Panel-dev/1Panel",
+  "documentation": "https://1panel-dev.github.io/docs/v2/installation/online_installation/"
+}

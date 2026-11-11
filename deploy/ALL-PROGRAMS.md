@@ -12,6 +12,8 @@
 | 原独立抽奖/中奖检查程序 | `lottery/` | `lottery/SERVER-DEPLOYMENT.md` |
 | Octop 与配套组件 | `octop/` | `octop/README.md` |
 | Nginx、Docker 等系统软件 | `server-runtime/` | `server-runtime/README.md` |
+| 1Panel 社区版管理面板 | `1panel/` | `1panel/README.md` |
+| 小内存运行与后台调度配置 | `server-runtime/optimization/` | `server-runtime/optimization/README.md` |
 
 ClawChat、Listing 和轻单的现有运行源码已与仓库核对；差异为发布说明、部署模板或忽略规则，未发现遗漏的线上业务代码修改。`bili-8790/` 保留早期修复补丁，`bililottery/` 现已补齐完整部署源码。Octop 收录安装版 Python 源码、内置资源与已构建网页，完整上游开发工作区另见其官方仓库。
 

@@ -41,5 +41,8 @@ DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
 | [lottery/](lottery/) | 原独立 LotteryAutoScript v2.11.3 和中奖检查服务 |
 | [octop/](octop/) | Octop 与4个配套组件的安装版源码/网页资源、许可证和依赖版本 |
 | [server-runtime/](server-runtime/) | Nginx、Docker 等基础软件的版本与安装边界 |
+| [1panel/](1panel/) | 1Panel 社区版 v2.4.2 官方安装校验信息、HTTPS 配置步骤和资源预算 |
+
+小内存机器上的 ClawChat、Octop、后台任务调度、zswap 及 Docker 按需启动配置见 [服务器运行优化](server-runtime/optimization/README.md)。
 
 完整目录及新机器部署入口见 [deploy/ALL-PROGRAMS.md](deploy/ALL-PROGRAMS.md)。第三方代码保留各自版权和许可证；所有新收录目录均不包含现有账号凭据、Cookie、数据库、运行日志或个人记忆。盘搜 Pansou 已删除，不收录或恢复。

@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-10T08:31:47.575219+00:00",
+  "recordedAt": "2026-11-11T04:18:10.719091+00:00",
   "operatingSystem": {
     "NAME": "TencentOS Server",
     "VERSION": "4",
@@ -72,5 +72,13 @@
     }
   ],
   "scope": "已安装运行软件版本，不包含系统二进制、身份凭据或私人配置",
-  "codex": "codex-cli 0.167.0"
+  "codex": "codex-cli 0.167.0",
+  "managementPanels": [
+    {
+      "name": "1Panel",
+      "edition": "Community",
+      "version": "v2.4.2",
+      "deployment": "1panel/README.md"
+    }
+  ]
 }

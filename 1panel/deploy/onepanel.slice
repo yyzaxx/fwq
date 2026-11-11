@@ -1,0 +1,14 @@
+[Unit]
+Description=1Panel resource budget
+
+[Slice]
+MemoryAccounting=yes
+MemoryHigh=384M
+MemoryMax=512M
+MemorySwapMax=128M
+CPUAccounting=yes
+CPUQuota=100%
+CPUWeight=50
+IOAccounting=yes
+IOWeight=50
+TasksMax=512
