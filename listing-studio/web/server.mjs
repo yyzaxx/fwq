@@ -9,6 +9,7 @@ import { TaskStore } from './lib/store.mjs';
 import { TemplateStore } from './lib/templates.mjs';
 import { TaskRunner } from './lib/runner.mjs';
 import { TaskRestarter } from './lib/restart.mjs';
+import {KeywordManager} from './lib/keywords.mjs';
 import { BatchManager,prepareArchive } from './lib/batches.mjs';
 import { importHistory } from './lib/import-history.mjs';
 import { validateInput,detectImage } from './lib/domain.mjs';
@@ -36,6 +37,7 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
   if(importExisting)await importHistory(store,path.dirname(ROOT));
   const runner=new TaskRunner(store,{browserUrl,enabled:false});
   const restarter=new TaskRestarter(store,runner);
+  const keywordManager=new KeywordManager(store,runner);
   const batches=await new TaskStore(path.join(dataRoot,'_batches')).init();
   const batchManager=new BatchManager(store,batches,runner);
   await runner.restore();await batchManager.restore();runner.enabled=runnerEnabled;if(runnerEnabled)void runner.drain();
@@ -119,28 +121,16 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
         return reply(res,201,publicTask(store.get(task.id)));
         }finally{imageUploads--;}
       }
-      const match=route.match(/^api\/tasks\/([a-zA-Z0-9-]{5,80})(?:\/(resume|restart|cancel|file|report|report\.md|download))?$/);
+      const match=route.match(/^api\/tasks\/([a-zA-Z0-9-]{5,80})(?:\/(resume|restart|keywords|cancel|file|report|report\.md|download))?$/);
       if(match){
         const [,id,action]=match,task=store.get(id);if(!task)return reply(res,404,{error:'任务不存在'});
         const directory=store.directory(id);
         if(req.method==='GET'&&!action)return reply(res,200,publicTask(task));
+        if(req.method==='POST'&&action==='keywords')return reply(res,200,publicTask(await keywordManager.change(id,await readBody(req))));
         if(req.method==='POST'&&action==='restart'){await readBody(req);return reply(res,200,publicTask(await restarter.start(id)));}
         if(req.method==='DELETE'&&!action){await readBody(req);return reply(res,200,await batchManager.removeTask(id));}
         if(req.method==='POST'&&action==='cancel'){await readBody(req);await runner.cancel(id);return reply(res,200,publicTask(store.get(id)));}
-        if(req.method==='POST'&&action==='resume'){
-          if(['queued','running','cancelling'].includes(task.state)||runner.active===id)return reply(res,409,{error:'任务正在执行或收尾，请稍后继续'});
-          const changes=await readBody(req),input=validateInput({...task.input,...changes});
-          if(input.category!==task.input.category)throw new Error('已有报告属于'+task.input.category+'；更改商品类目请新建调研，不能复用原词库');
-          const editing=typeof changes.templateOne==='string'||typeof changes.templateTwo==='string';
-          const researchComplete=task.result?.competitors?.length>=5&&task.result?.keywords?.length>=15;
-          const hasSources=task.result?.competitors?.length>0||task.result?.keywords?.length>0;
-          const mode=task.state==='needs_login'?'full':hasSources&&(editing||researchComplete)?'titles_only':'full';
-          const result=task.result?{...task.result,titles:[]}:undefined;
-          await store.patch(id,{input,mode,...(result?{result}:{})});
-          if(runner.blockedForLogin===id)await runner.resumeLogin({retryTask:true});
-          else{await runner.enqueue(id);if(task.resourcePause?.status==='paused')await runner.resumeLogin();}
-          return reply(res,200,publicTask(store.get(id)));
-        }
+        if(req.method==='POST'&&action==='resume')return reply(res,200,publicTask(await runner.resumeTask(id,await readBody(req))));
         if(req.method==='GET'&&action==='file'){
           const relative=url.searchParams.get('path')||'';
           let filename;try{filename=await publicFile(directory,relative);}catch{return reply(res,404,{error:'文件不存在或不可公开'});}

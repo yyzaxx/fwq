@@ -6,7 +6,7 @@ import os from 'node:os';
 import {TaskStore} from '../lib/store.mjs';
 import {TaskRunner} from '../lib/runner.mjs';
 
-test('准备阶段取消后不得再启动任何执行器进程',async()=>{
+test('准备阶段取消后不得再启动任何执行器进程',{timeout:5000},async()=>{
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'listing-cancel-'));
   let release;
   try{
@@ -18,7 +18,7 @@ test('准备阶段取消后不得再启动任何执行器进程',async()=>{
     let entered;
     const started=new Promise(resolve=>{entered=resolve;});
     const gate=new Promise(resolve=>{release=resolve;});
-    store.patch=async(id,update)=>{const result=await original(id,update);if(typeof update==='object'&&update.state==='running'){entered();await gate;}return result;};
+    store.patch=async(id,update)=>{const result=await original(id,update);if(result.state==='running'){entered();await gate;}return result;};
     const runner=new TaskRunner(store,{executor:fake,resetBrowser:async()=>({closed:0})});
     await runner.enqueue(task.id);await started;await runner.cancel(task.id);release();
     for(let i=0;runner.draining&&i<100;i++)await new Promise(resolve=>setTimeout(resolve,20));

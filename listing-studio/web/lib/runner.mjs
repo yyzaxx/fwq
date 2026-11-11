@@ -1,7 +1,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { validateResult } from './domain.mjs';
+import {randomUUID} from 'node:crypto';
+import { validateInput,validateResult } from './domain.mjs';
+import {pendingKeywords,prepareKeywordDirectory,keywordPrompt,acceptKeywordResult} from './keywords.mjs';
 import { realFile } from './reports.mjs';
 import {MAX_BROWSER_PAGES,resetBrowserPages} from './browser-cleanup.mjs';
 import {createResourceChecker} from './resources.mjs';
@@ -79,6 +81,29 @@ export class TaskRunner {
     });
     this.queueOperation=operation;return operation;
   }
+  resumeTask(id,changes){
+    const operation=this.queueOperation.catch(()=>{}).then(async()=>{
+      const task=this.store.get(id);if(!task)throw Object.assign(Error('任务不存在或已删除'),{status:404});
+      if(['staged','queued','running','cancelling'].includes(task.state)||this.active===id||this.queue.includes(id))throw Object.assign(Error('任务正在执行或收尾，请稍后继续'),{status:409});
+      if(!changes||typeof changes!=='object'||Array.isArray(changes))throw Error('继续任务参数无效');
+      const input=validateInput({...task.input,...changes});
+      if(input.category!==task.input.category)throw Error('已有报告属于'+task.input.category+'；更改商品类目请新建调研，不能复用原词库');
+      const editing=typeof changes.templateOne==='string'||typeof changes.templateTwo==='string';
+      const hasSources=task.result?.competitors?.length>0||task.result?.keywords?.length>0;
+      const researchComplete=task.result?.competitors?.length>=5&&task.result?.keywords?.length>=15;
+      const mode=pendingKeywords(task)?'keywords_only':task.state==='needs_login'?'full':hasSources&&(editing||researchComplete||task.titlesStale)?'titles_only':'full';
+      const result=task.result?(pendingKeywords(task)?task.result:{...task.result,titles:[]}):undefined;
+      await this.store.patch(id,{input,mode,...(result?{result}:{}),state:'queued',stage:'queued',queueOrder:++this.queueSequence,message:'已恢复，将按顺序继续已有资料'});
+      this.queue.push(id);return {resourcePaused:task.resourcePause?.status==='paused',loginBlocked:this.blockedForLogin===id};
+    });
+    this.queueOperation=operation;
+    return operation.then(async({resourcePaused,loginBlocked})=>{
+      if(loginBlocked)await this.resumeLogin({retryTask:true});
+      else if(resourcePaused)await this.resumeLogin();
+      else if(this.enabled)void this.drain();
+      return this.store.get(id);
+    });
+  }
   resumeAll(){
     const operation=this.queueOperation.catch(()=>{}).then(async()=>{
       const tasks=this.store.list().filter(task=>!task.latestRestartId&&task.id!==this.active&&!this.queue.includes(task.id)&&['failed','cancelled','needs_login'].includes(task.state))
@@ -86,9 +111,9 @@ export class TaskRunner {
       for(const task of tasks){
         const hasSources=task.result?.competitors?.length>0||task.result?.keywords?.length>0;
         const researchComplete=task.result?.competitors?.length>=5&&task.result?.keywords?.length>=15;
-        const mode=task.state==='needs_login'?'full':hasSources&&(task.mode==='titles_only'||researchComplete)?'titles_only':'full';
+        const mode=pendingKeywords(task)?'keywords_only':task.state==='needs_login'?'full':hasSources&&(task.mode==='titles_only'||researchComplete)?'titles_only':'full';
         await this.store.patch(task.id,{state:'queued',stage:'queued',mode,queueOrder:++this.queueSequence,
-          message:'已恢复，将按顺序继续已有调研',...(task.result?{result:{...task.result,titles:[]}}:{})});
+          message:'已恢复，将按顺序继续已有调研',...(task.result?{result:pendingKeywords(task)?task.result:{...task.result,titles:[]}}:{})});
         this.queue.push(task.id);
       }
       return tasks.length;
@@ -174,13 +199,15 @@ export class TaskRunner {
     }
   }
   async run(id){
-    const task=this.store.get(id),directory=this.store.directory(id);
-    await this.store.patch(id,{state:'running',stage:task.mode==='titles_only'?'titles':'reading',message:task.mode==='titles_only'?'正在按已有报告生成标题':'正在读取图片和输入资料',startedAt:new Date().toISOString()});
+    const task=this.store.get(id),rootDirectory=this.store.directory(id),keywordRun=pendingKeywords(task),isolatedTitles=task.mode==='titles_only'&&task.titlesStale;
+    const directory=keywordRun?await prepareKeywordDirectory(this.store,task):isolatedTitles?await prepareKeywordDirectory(this.store,task,`title-runs/${randomUUID()}`):rootDirectory;
+    const started=await this.store.patch(id,current=>['cancelled','cancelling'].includes(current.state)?{}:{state:'running',stage:keywordRun?'sif':task.mode==='titles_only'?'titles':'reading',message:keywordRun?'正在重新查询 Sif 流量词，原结果暂时保留':task.mode==='titles_only'?'正在按已有报告生成标题':'正在读取图片和输入资料',startedAt:new Date().toISOString()});
+    if(['cancelled','cancelling'].includes(started.state))return;
     await fs.writeFile(path.join(directory,'input.json'),JSON.stringify(task.input,null,2));
     if(task.result)await fs.writeFile(path.join(directory,'research.json'),JSON.stringify(task.result,null,2));
     await fs.rm(path.join(directory,'result.json'),{force:true});
     try{await fs.rename(path.join(directory,'progress.json'),path.join(directory,'previous-progress.json'));}catch{}
-    const frozenReport=task.mode==='titles_only'&&task.result?.reportFile?await fs.readFile(await realFile(directory,task.result.reportFile),'utf8'):null;
+    const frozenReport=task.mode==='titles_only'&&task.result?.reportFile?await fs.readFile(await realFile(rootDirectory,task.result.reportFile),'utf8'):null;
     if(['cancelled','cancelling'].includes(this.store.get(id)?.state))return;
     const args=['exec','--skip-git-repo-check','--ephemeral','--json','--sandbox','workspace-write','-c','approval_policy='+JSON.stringify('never'),'-c','sandbox_workspace_write.network_access=true','-C',directory,'--image',path.join(directory,'preview.jpg'),'-'];
     const child=spawn(this.executor,args,{cwd:directory,detached:true,stdio:['pipe','pipe','pipe'],env:{...process.env}});this.child=child;
@@ -198,7 +225,7 @@ export class TaskRunner {
       }
     });
     child.stderr.on('data',chunk=>{stderr=(stderr+chunk.toString()).slice(-4000);void fs.appendFile(path.join(directory,'executor-errors.log'),chunk,{mode:0o600}).catch(()=>{});});
-    child.stdin.end(prompt(task,directory,this.browserUrl));
+    child.stdin.end(keywordRun?keywordPrompt(task,directory,this.browserUrl,MAX_BROWSER_PAGES):prompt(task,directory,this.browserUrl));
     const watcher=setInterval(async()=>{
       try{const p=JSON.parse(await fs.readFile(path.join(directory,'progress.json'),'utf8'));const stage=['reading','amazon','sif','titles','report'].includes(p.stage)?p.stage:'reading';const message=String(p.message||'任务执行中').slice(0,300);const key=stage+message;if(lastProgress!==key&&this.store.get(id)?.state==='running'){lastProgress=key;await this.store.patch(id,{stage,message});}}catch{}
     },1500);
@@ -223,15 +250,18 @@ export class TaskRunner {
     if(code!==0)throw new Error(/auth|login|401|403/i.test(stderr)?'执行器认证不可用，请检查本机登录后继续':'执行器中断，资料已保留，可重试继续');
     let result;
     try{result=JSON.parse(await fs.readFile(path.join(directory,'result.json'),'utf8'));}catch{throw new Error('执行器未生成有效结果文件，资料已保留，可重试');}
+    if(keywordRun){await acceptKeywordResult(this.store,task,result,directory);return;}
     result=validateResult(task.input,result,task.mode==='titles_only'?task.result:null);
+    if(isolatedTitles)result.reportFile=task.result.reportFile;
     if(frozenReport!==null&&result.titles.length===2){
-      const original=frozenReport.replace('- 状态：**联合调研已完成，标题待模板**。两套标题模板尚未提供，标题未生成。','- 状态：**两条标题已生成并通过校验**；竞品与流量词沿用原实际核对日期。').replace(/\n## 标题一[\s\S]*$/,'').replace(/\n## 缺口与下一步[\s\S]*$/,'');
+      const original=frozenReport.replace('- 状态：标题待重新生成。旧标题及报告已归档。','- 状态：两条标题已按当前流量词重新生成并通过校验。').replace('- 状态：**联合调研已完成，标题待模板**。两套标题模板尚未提供，标题未生成。','- 状态：**两条标题已生成并通过校验**；竞品与流量词沿用原实际核对日期。').replace(/\n## 标题一[\s\S]*$/,'').replace(/\n## 缺口与下一步[\s\S]*$/,'');
       const titleArchive=result.titles.map((t,i)=>`\n## 标题${i===0?'一':'二'}\n\n\u0060\u0060\u0060text\n${t.text}\n\u0060\u0060\u0060\n`).join('');
-      await fs.writeFile(path.join(directory,'report.md'),original+'\n'+titleArchive);
-      result.reportFile='report.md';
+      const reportFile=isolatedTitles?path.posix.join(path.posix.dirname(task.result.reportFile),`titles-${randomUUID()}.md`):'report.md';
+      await fs.writeFile(path.join(rootDirectory,reportFile),original+'\n'+titleArchive);
+      result.reportFile=reportFile;
     }
-    if(result.reportFile)await realFile(directory,result.reportFile);
-    for(const c of result.competitors)await realFile(directory,c.imageFile);
-    await this.store.patch(id,current=>['cancelled','cancelling'].includes(current.state)?{}:{result,state:result.status,loginBarrier:result.status==='needs_login',stage:result.status==='completed'?'done':current.stage,message:String(result.message||'已保存当前实际结果').slice(0,1000),finishedAt:new Date().toISOString()});
+    if(result.reportFile)await realFile(rootDirectory,result.reportFile);
+    for(const c of result.competitors)await realFile(rootDirectory,c.imageFile);
+    await this.store.patch(id,current=>['cancelled','cancelling'].includes(current.state)?{}:{result,...(result.titles.length===2?{titlesStale:false}:{}),state:result.status,loginBarrier:result.status==='needs_login',stage:result.status==='completed'?'done':current.stage,message:String(result.message||'已保存当前实际结果').slice(0,1000),finishedAt:new Date().toISOString()});
   }
 }
