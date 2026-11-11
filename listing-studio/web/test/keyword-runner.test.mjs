@@ -19,8 +19,8 @@ test('换词执行在独立目录，成功仅替换一个词且保留其余全�
  const dir=path.join(f.store.directory(f.task.id),'keyword-runs',next.keywordJob.id);const prompt=await fs.readFile(path.join(dir,'prompt.txt'),'utf8');assert.match(prompt,/funny frog decor/);assert.match(prompt,/Sif US/);assert.match(prompt,/最多 2 个/);
  assert.equal((await(await fetch(f.base+'tasks/'+f.task.id+'/download')).arrayBuffer()).byteLength>100,true);
 });
-test('全部重采使用全新词表，不复用旧词，15条不足时按实际数量交付',async t=>{
- const f=await fixture(t);await f.request({action:'refresh'});const next=await run(f,result(['frog bathroom decor','whimsical frog art']));assert.deepEqual(next.result.keywords.map(w=>w.term),['frog bathroom decor','whimsical frog art']);assert.equal(next.keywordJob.status,'completed');assert.match(next.message,/不足15/);assert.deepEqual(next.excludedKeywords,['frog wall art','funny frog decor','green frog painting']);
+test('整组重采不足15仅存为候选，连续无进展时保持未达标，原词库和报告不变',async t=>{
+ const f=await fixture(t);await f.request({action:'refresh'});const next=await run(f,result(['frog bathroom decor','whimsical frog art']));assert.deepEqual(next.result,f.task.result);assert.equal(next.keywordJob.status,'pending');assert.equal(next.keywordJob.collectedKeywords.length,2);assert.equal(next.state,'needs_input');assert.match(next.message,/15/);
 });
 test('拒绝再次采到排除词、保留词、归一化重复词及来源不合法的词，原结果不变',async t=>{
  for(const output of [result(['  FUNNY  frog decor  ']),result(['green frog painting']),result(['frog bathroom decor',' Frog Bathroom Decor ']),{...result(['frog bathroom decor']),keywords:[{...kw('frog bathroom decor'),queryUrl:'https://example.com'}]},result(['frog bathroom decor','whimsical frog art'])]){

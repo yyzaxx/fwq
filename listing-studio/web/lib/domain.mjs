@@ -1,6 +1,7 @@
 import path from 'node:path';
 
 export const normaliseTemplate=value=>String(value??'').replace(/\r\n?/g,'\n').replace(/^\n+|\n+$/g,'').replace(/\n/g,' ');
+export const keywordKey=term=>String(term).normalize('NFKC').trim().replace(/\s+/g,' ').toLowerCase();
 export const tokenise = text => String(text).match(/[\p{L}\p{N}]+/gu) || [];
 export function templateParts(template) {
   const matches=[...template.matchAll(/\{([^{}]+)\}/g)];
@@ -83,8 +84,8 @@ export function validateResult(input,result,frozenSources=null) {
   if(result.reportFile&&!String(result.reportFile).endsWith('.md'))throw new Error('联合报告必须为Markdown文件');
   const seen=new Set();
   for (const keyword of result.keywords) {
-    if (!keyword.term||typeof keyword.term!=='string'||seen.has(keyword.term)) throw new Error('原词列表为空或包含重复词');
-    seen.add(keyword.term);
+    if (typeof keyword.term!=='string'||!keywordKey(keyword.term)||!tokenise(keyword.term).length||seen.has(keywordKey(keyword.term))) throw new Error('原词列表为空或包含重复词');
+    seen.add(keywordKey(keyword.term));
     const url=new URL(keyword.queryUrl);
     if (url.protocol!=='https:'||!['sif.com','www.sif.com'].includes(url.hostname)||!keyword.seed||!keyword.period||!keyword.sourcePosition) throw new Error('Sif 原词缺少可追溯的查询来源');
     if (keyword.volume!==null&&(!Number.isFinite(keyword.volume)||keyword.volume<0)) throw new Error('搜索量格式不正确');

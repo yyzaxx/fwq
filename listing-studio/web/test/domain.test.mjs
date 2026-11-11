@@ -59,3 +59,6 @@ test('单行规范化不能将非字符串标题当成有效结果',()=>{
  const single={category:'其他',templateOne:'{主体}',templateTwo:'{主体}',ranges:[[1,20],[1,20]]};
  assert.throws(()=>auditTitles(single,[{text:8,slots:[{name:'主体',value:'8'}]},{text:'8',slots:[{name:'主体',value:'8'}]}],{keywords:[{term:'8'}],competitors:[]}),/固定|模板|标题/);
 });
+test('空白或没有词语的返回项不能计为有效Sif原词',()=>{
+ for(const term of ['   ','\t','\u3000','---','\u200b'])assert.throws(()=>validateResult(input,{status:'partial',titles:[],competitors:[],keywords:[{term,seed:'B012345678',queryUrl:'https://www.sif.com/traffic',period:'最近7天',volume:null,volumeStatus:'未展示',sourcePosition:'第1行'}]}),/原词/);
+});
