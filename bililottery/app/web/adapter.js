@@ -28,7 +28,7 @@
     }
     const subscribe = (type, callback) => { listeners[type].add(callback); return () => listeners[type].delete(callback); };
     window.lotteryDesktop = {
-        bootstrap, saveSettings: input => call('/api/settings', input),
+        bootstrap, dynamicStatus: () => call('/api/dynamics/status'), previewDynamics: scope => call('/api/dynamics/preview', {scope}), deleteDynamics: previewId => call('/api/dynamics/delete', {previewId}), refreshWins: () => call('/api/wins/refresh', {}), saveSettings: input => call('/api/settings', input),
         previewSummaries: () => call('/api/summaries', {}), previewCleanup: () => call('/api/cleanup-preview', {}),
         chooseEngine: () => call('/api/engine', { path: document.getElementById('enginePath').value }),
         run: action => call('/api/run', { action }), stop: () => call('/api/stop', {}),

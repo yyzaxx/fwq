@@ -53,6 +53,7 @@
                             <button class="btn btn-primary" id="btn-start">启动任务</button>
                             <button class="btn btn-danger hidden" id="btn-stop">停止任务</button>
                             <button class="btn btn-secondary action-button" data-action="check">检查中奖</button>
+                            <button class="btn btn-secondary action-button web-only hidden" id="btn-dynamics-open">一键删除动态</button>
                         </div>
                     </div>
                     <div class="hero-orbit" aria-hidden="true">
@@ -63,6 +64,12 @@
                 </div>
 
                 <div class="stat-grid">
+                    <section class="stat-card web-only hidden" id="wins-card">
+                        <span class="stat-label">最近七天中奖次数为</span>
+                        <strong id="stat-wins">—</strong>
+                        <span class="stat-foot" id="wins-status" role="status">尚未统计</span>
+                        <button class="text-button" id="btn-wins-refresh" type="button">更新统计</button>
+                    </section>
                     <button class="stat-card" data-go="account">
                         <span class="stat-label">账号状态</span>
                         <strong id="stat-account">未登录</strong>
@@ -79,6 +86,12 @@
                         <span class="stat-foot">默认不执行真实互动</span>
                     </button>
                 </div>
+
+                <section class="panel web-only hidden" id="dynamic-panel">
+                    <div class="panel-heading"><div><span class="section-kicker">DYNAMIC MANAGER</span><h3>动态批量删除</h3><p>先核对待删清单，确认后按条处理。保留名单继续生效。</p></div></div>
+                    <div class="button-row"><select id="dynamic-scope" aria-label="动态删除范围"><option value="reposts">全部转发动态，保留原创</option><option value="recorded">仅本工具记录的抽奖转发</option><option value="all">全部动态，包含原创</option></select><button class="btn btn-secondary action-button" id="btn-dynamics-preview" type="button">读取待删动态</button><button class="text-button hidden" id="btn-dynamics-progress" type="button">查看删除进度</button></div>
+                    <p class="fine-print" id="dynamic-summary" role="status">不限开奖时间；将先显示本账号符合范围的动态和条数，再确认删除。</p>
+                </section>
 
                 <div class="content-grid">
                     <section class="panel">
@@ -260,6 +273,14 @@
         <button class="btn btn-secondary" id="btn-cancel-login" type="button" autofocus>取消登录</button>
     </dialog>
     <div class="toast" id="toast" role="status"></div>
+    <dialog id="dynamic-delete-dialog" class="dynamic-dialog">
+        <h2 id="dynamic-dialog-title">动态删除预览</h2>
+        <p id="dynamic-dialog-meta"></p><p id="dynamic-dialog-status" role="status"></p>
+        <p class="dynamic-warning" id="dynamic-delete-warning">确认后会真实删除当前预览清单内的动态，此操作不能撤销；未开奖转发也可能在内。</p>
+        <div id="dynamic-delete-items" class="dynamic-preview-list"></div>
+        <p class="fine-print" id="dynamic-preview-note"></p>
+        <div class="button-row dynamic-dialog-actions"><button class="btn btn-secondary" type="button" id="btn-dynamic-close">取消</button><button class="btn btn-secondary hidden" type="button" id="btn-dynamic-stop">停止删除</button><button class="btn btn-danger" type="button" id="btn-dynamic-confirm" disabled>确认删除</button></div>
+    </dialog>
     <script src="renderer.js"></script>
 </body>
 </html>

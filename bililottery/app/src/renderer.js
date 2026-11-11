@@ -14,7 +14,7 @@ const pageMeta = {
 };
 
 const actionNames = {
-    start: '自动抽奖', summary: '汇总读取', cleanup: '转发清理预览', check: '中奖检查', login: '扫码登录',
+    wins: '中奖统计', 'dynamic-preview': '动态预览', 'dynamic-delete': '动态删除', start: '自动抽奖', summary: '汇总读取', cleanup: '转发清理预览', check: '中奖检查', login: '扫码登录',
     account: '账号检查', update: '更新检查', help: '帮助信息'
 };
 
@@ -83,6 +83,7 @@ function updateState(state, refill = true) {
     renderSummary(state.summaryPreview);
     renderCleanup(state.cleanupPreview);
     updateProcess(proc);
+    window.biliFeatures?.update(state);
 }
 
 function renderSummary(report) {
@@ -130,18 +131,18 @@ function renderCleanup(report) {
 }
 
 function updateProcess(proc) {
-    const running = proc.running;
+    const running = proc.running, blocking = running && proc.action !== 'wins';
     if (!running || proc.action !== 'login') {
         $('#login-qr-dialog').close();
         $('#login-qr-image').removeAttribute('src');
     }
     $('#process-pill').classList.toggle('running', running);
     $('#process-text').textContent = running ? `${actionNames[proc.action] || proc.action}运行中` : '空闲';
-    $('#btn-start').classList.toggle('hidden', running);
+    $('#btn-start').classList.toggle('hidden', blocking);
     $('#btn-stop').classList.toggle('hidden', !running);
-    $all('.action-button, #btn-start, #btn-choose-engine').forEach(button => { button.disabled = running; });
-    $all('form input, form textarea, form select, form button[type="submit"]').forEach(field => { field.disabled = running; });
-    $('#btn-summary-start').disabled = running || !$('#summarySource').checked;
+    $all('.action-button, #btn-start, #btn-choose-engine').forEach(button => { button.disabled = blocking; });
+    $all('form input, form textarea, form select, form button[type="submit"]').forEach(field => { field.disabled = blocking; });
+    $('#btn-summary-start').disabled = blocking || !$('#summarySource').checked;
 }
 
 async function refresh(refill = true) {
@@ -257,6 +258,7 @@ api.onOutput(appendOutput);
 api.onState(state => {
     if (appState) appState.process = state;
     updateProcess(state);
+    window.biliFeatures?.setProcess(state);
     if (!state.running) setTimeout(() => refresh(false), 300);
 });
 

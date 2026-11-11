@@ -6,6 +6,8 @@ const { DEFAULT_SETTINGS, readJson, saveConfigs, writeJsonAtomic, validateEngine
 const { EngineManager, createLoginQr, sanitizeLog } = require('../src/engine.cjs');
 const { collectSummaries, prepareSummaryQueue } = require('../src/summaries.cjs');
 const { previewExpiredReposts, cleanupExpiredReposts } = require('../src/cleanup.cjs');
+const { DynamicDeletion } = require('../src/dynamic-deletion.cjs');
+const { refreshWins, readWins } = require('../src/win-stats.cjs');
 const project = path.resolve(__dirname, '..');
 
 function createWebServer(options = {}) {
@@ -26,12 +28,15 @@ function createWebServer(options = {}) {
     writeJsonAtomic(settingsFile, settings);
     const manager = new EngineManager(path.join(dataDir, 'logs'));
     const clients = new Set(), token = crypto.randomBytes(32).toString('hex');
+    const deletion = new DynamicDeletion(runtime, () => settings, options.dynamicOptions || {});
+    let background = null;
     let prep = null, qrImage = '', lastQr = '', output = '', port = 0;
     const proc = () => prep ? { running: true, action: prep.action, startedAt: prep.startedAt } : manager.getState();
     const state = () => ({ rootDir: dataDir, runtimeDir: runtime, settings, engine: validateEngine(settings.enginePath),
         account: accountStatus(runtime), process: proc(), version: '1.0.0 Web',
         summaryPreview: readJson(path.join(runtime, 'summary-preview.json'), { sources: [], items: [] }),
-        cleanupPreview: readJson(path.join(runtime, 'cleanup-preview.json'), { items: [], deleted: 0 }) });
+        cleanupPreview: readJson(path.join(runtime, 'cleanup-preview.json'), { items: [], deleted: 0 }),
+        dynamicDeletion: deletion.getState(), wins: readWins(runtime, settings, options.winOptions || {}) });
     const emit = (type, data) => { for (const client of clients) client.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`); };
     manager.on('output', text => {
         output = (output + text).slice(-50000); emit('output', text);
@@ -53,6 +58,24 @@ function createWebServer(options = {}) {
         prep = { controller, action, startedAt: Date.now() }; emit('state', proc());
         try { return await work({ signal: controller.signal, onOutput: text => manager.appendLog(text) }); }
         finally { prep = null; emit('state', proc()); }
+    }
+    function startBackground(work, action) {
+        idle();
+        let flight;
+        flight = prepare(work, action).catch(error => manager.appendLog(`[Web助手] ${sanitizeLog(error.message)}\n`))
+            .finally(() => { if (background === flight) background = null; });
+        background = flight;
+        return state();
+    }
+    async function preemptStats() {
+        if (prep?.action === 'wins') {
+            prep.controller.abort(new Error('已停止后台统计，优先处理当前操作'));
+            await background;
+        }
+    }
+    function startWinRefresh() {
+        if (prep?.action === 'wins') return state();
+        return startBackground(params => refreshWins(runtime, settings, { ...options.winOptions, ...params }), 'wins');
     }
     async function run(action) {
         idle();
@@ -88,6 +111,7 @@ function createWebServer(options = {}) {
                 res.setHeader('Set-Cookie', `bili_web=${token}; HttpOnly; SameSite=Strict; Path=/`);
                 return json(res, 200, { ...state(), webToken: token, qrImage, output });
             }
+            if (req.method === 'GET' && url.pathname === '/api/dynamics/status') return json(res, 200, deletion.getState());
             if (req.method === 'GET' && url.pathname === '/api/events') {
                 if (!(req.headers.cookie || '').split(';').some(c => c.trim() === `bili_web=${token}`)) return json(res, 403, { error: '请刷新页面建立连接' });
                 res.writeHead(200, { 'Content-Type': 'text/event-stream', Connection: 'keep-alive' });
@@ -98,27 +122,40 @@ function createWebServer(options = {}) {
             if (req.method === 'POST' && url.pathname.startsWith('/api/')) {
                 if (req.headers['x-web-token'] !== token) return json(res, 403, { error: '页面会话无效，请刷新' });
                 const input = await body(req);
+                if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('请求参数格式无效');
                 if (url.pathname === '/api/settings') {
-                    idle(); const update = Object.fromEntries(Object.keys(DEFAULT_SETTINGS).filter(k => k !== 'enginePath' && Object.hasOwn(input, k)).map(k => [k, input[k]]));
+                    await preemptStats(); idle(); const update = Object.fromEntries(Object.keys(DEFAULT_SETTINGS).filter(k => k !== 'enginePath' && Object.hasOwn(input, k)).map(k => [k, input[k]]));
                     settings = saveConfigs(settings.enginePath, runtime, { ...settings, ...update }); writeJsonAtomic(settingsFile, settings);
                     return json(res, 200, state());
                 }
                 if (url.pathname === '/api/engine') {
-                    idle(); const candidate = String(input.path || '').trim(); const info = validateEngine(candidate);
+                    await preemptStats(); idle(); const candidate = String(input.path || '').trim(); const info = validateEngine(candidate);
                     if (!info.valid) throw new Error(info.message);
                     settings.enginePath = path.resolve(candidate); writeJsonAtomic(settingsFile, settings); return json(res, 200, state());
                 }
-                if (url.pathname === '/api/run') return json(res, 200, await run(input.action));
+                if (url.pathname === '/api/run') { await preemptStats(); return json(res, 200, await run(input.action)); }
                 if (url.pathname === '/api/stop') {
                     if (prep) prep.controller.abort(new Error('已取消任务')); else await manager.stop();
                     return json(res, 200, true);
                 }
                 if (url.pathname === '/api/summaries') {
-                    await prepare(params => collectSummaries(runtime, settings, params)); return json(res, 200, state());
+                    await preemptStats(); await prepare(params => collectSummaries(runtime, settings, params)); return json(res, 200, state());
                 }
                 if (url.pathname === '/api/cleanup-preview') {
-                    await prepare(params => previewExpiredReposts(runtime, settings, params), 'cleanup'); return json(res, 200, state());
+                    await preemptStats(); await prepare(params => previewExpiredReposts(runtime, settings, params), 'cleanup'); return json(res, 200, state());
                 }
+                if (url.pathname === '/api/dynamics/preview') {
+                    if (!['reposts', 'recorded', 'all'].includes(input.scope)) throw new Error('请选择有效的动态删除范围');
+                    await preemptStats();
+                    return json(res, 202, startBackground(params => deletion.preview(input.scope, params), 'dynamic-preview'));
+                }
+                if (url.pathname === '/api/dynamics/delete') {
+                    await preemptStats(); idle();
+                    const preview = deletion.getState();
+                    if (!preview.canExecute || preview.previewId !== input.previewId || preview.uid !== String(settings.uid) || preview.dryRun !== Boolean(settings.dryRun)) throw new Error('预览已失效或设置已变化，请重新预览');
+                    return json(res, 202, startBackground(params => deletion.execute(input.previewId, params), 'dynamic-delete'));
+                }
+                if (url.pathname === '/api/wins/refresh') return json(res, 202, startWinRefresh());
                 if (url.pathname === '/api/path') {
                     const paths = { root: dataDir, data: dataDir, logs: path.join(dataDir, 'logs'), engine: settings.enginePath, config: path.join(runtime, 'my_config.js') };
                     if (!paths[input.target]) throw new Error('未知目录'); return json(res, 200, { path: paths[input.target] });
@@ -128,10 +165,10 @@ function createWebServer(options = {}) {
             if (req.method !== 'GET') return json(res, 405, { error: '不支持的请求方式' });
             const assets = { '/': ['src/index.html', 'text/html'], '/index.html': ['src/index.html', 'text/html'],
                 '/styles.css': ['src/styles.css', 'text/css'], '/renderer.js': ['src/renderer.js', 'text/javascript'],
-                '/web-adapter.js': ['web/adapter.js', 'text/javascript'], '/web.css': ['web/web.css', 'text/css'] };
+                '/web-adapter.js': ['web/adapter.js', 'text/javascript'], '/web-features.js': ['web/features.js', 'text/javascript'], '/web.css': ['web/web.css', 'text/css'] };
             const asset = assets[url.pathname]; if (!asset) return json(res, 404, { error: '文件不存在' });
             let content = fs.readFileSync(path.join(project, asset[0]), 'utf8');
-            if (asset[1] === 'text/html') content = content.replace('<script src="renderer.js">', '<script src="web-adapter.js"></script>\n    <script src="renderer.js">')
+            if (asset[1] === 'text/html') content = content.replace('<script src="renderer.js">', '<script src="web-adapter.js"></script>\n    <script src="web-features.js"></script>\n    <script src="renderer.js">')
                 .replace('</head>', '<link rel="stylesheet" href="web.css">\n</head>')
                 .replaceAll('Bili抽奖助手 · 绿色版', 'Bili抽奖助手 · Web版').replaceAll('绿色桌面版', '本机 Web 应用')
                 .replace('id="enginePath" readonly', 'id="enginePath"').replace('>选择目录</button>', '>连接源码</button>')
@@ -146,6 +183,7 @@ function createWebServer(options = {}) {
         }),
         close: async () => {
             prep?.controller.abort(new Error('服务关闭'));
+            await background;
             if (manager.getState().running) { const finished = new Promise(resolve => manager.once('finished', resolve)); await manager.stop(); await finished; }
             for (const client of clients) client.end();
             await new Promise(resolve => { server.close(resolve); server.closeAllConnections(); });
