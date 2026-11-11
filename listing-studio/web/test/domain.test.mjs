@@ -44,3 +44,18 @@ test('仅标题续作锁定旧词库，执行器不能新增词源再为自己�
   forged.keywords.push({...forged.keywords[0],term:'invented decor'});
   assert.throws(()=>validateResult(input,forged,frozen),/词源|词库|原词/);
 });
+test('粘贴模板的首尾换行去掉、内部换行转为空格，普通空格和标点保留',()=>{
+ const parsed=validateInput({...input,templateOne:'\r\nBrand {主体}\r\nWall Art\r\n'});assert.equal(parsed.templateOne,'Brand {主体} Wall Art');
+ assert.equal(validateInput({...input,templateOne:'  Brand {主体} Wall Art '}).templateOne,'  Brand {主体} Wall Art ');
+ assert.equal(renderTemplate('Brand {主体} Wall Art\n',[{name:'主体',value:'Bunny'}]),'Brand Bunny Wall Art');
+});
+test('历史模板末尾换行不会让合格的单行标题失败，固定文字改动仍拒绝',()=>{
+ const historical={...input,templateOne:input.templateOne+'\n'};
+ const titles=[{text:'Brand Bunny Wall Art',slots:[{name:'主体',value:'Bunny'}]},{text:'Brand Rabbit Wall Art, Vintage Easter Decor',slots:[{name:'主体',value:'Rabbit'},{name:'风格',value:'Vintage Easter Decor'}]}];
+ const checked=auditTitles(historical,titles,sources);assert.equal(checked[0].text,'Brand Bunny Wall Art');assert.equal(checked[0].length,20);
+ assert.throws(()=>auditTitles(historical,[{...titles[0],text:'Other Bunny Wall Art'},titles[1]],sources),/固定/);
+});
+test('单行规范化不能将非字符串标题当成有效结果',()=>{
+ const single={category:'其他',templateOne:'{主体}',templateTwo:'{主体}',ranges:[[1,20],[1,20]]};
+ assert.throws(()=>auditTitles(single,[{text:8,slots:[{name:'主体',value:'8'}]},{text:'8',slots:[{name:'主体',value:'8'}]}],{keywords:[{term:'8'}],competitors:[]}),/固定|模板|标题/);
+});

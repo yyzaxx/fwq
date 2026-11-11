@@ -62,3 +62,6 @@ test('慢速继续请求不能用旧快照撤销期间已成功删除的词',asy
  let request;const response=new Promise((resolve,reject)=>{request=http.request(f.base+'tasks/'+f.task.id+'/resume',{method:'POST',headers:{'content-type':'application/json','content-length':2}},res=>{let body='';res.on('data',b=>body+=b);res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(body)}));});request.on('error',reject);request.write('{');});
  await entered;assert.equal((await f.request({action:'delete',term:'funny frog decor'})).status,200);request.end('}');const r=await response;assert.equal(r.status,200);assert.deepEqual(r.body.result.keywords.map(w=>w.term),['frog wall art','green frog painting']);assert.equal(r.body.mode,'titles_only');
 });
+test('成功修改词库后清除上次标题失败标记，进入新词库待生成状态',async t=>{
+ const f=await fixture(t);await f.store.patch(f.task.id,{titleValidationError:'原标题不合格',titlesStale:true});const r=await f.request({action:'delete',term:'funny frog decor'});assert.equal(r.status,200);const next=await r.json();assert.equal(next.titleValidationError,null);assert.equal(next.titlesStale,true);
+});

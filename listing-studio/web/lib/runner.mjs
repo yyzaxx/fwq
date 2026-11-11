@@ -5,6 +5,7 @@ import {randomUUID} from 'node:crypto';
 import { validateInput,validateResult } from './domain.mjs';
 import {pendingKeywords,prepareKeywordDirectory,keywordPrompt,acceptKeywordResult} from './keywords.mjs';
 import { realFile } from './reports.mjs';
+import {recoverTitleResult} from './title-recovery.mjs';
 import {MAX_BROWSER_PAGES,resetBrowserPages} from './browser-cleanup.mjs';
 import {createResourceChecker} from './resources.mjs';
 import {createBrowserRecycler} from './browser-recycle.mjs';
@@ -251,10 +252,12 @@ export class TaskRunner {
     let result;
     try{result=JSON.parse(await fs.readFile(path.join(directory,'result.json'),'utf8'));}catch{throw new Error('执行器未生成有效结果文件，资料已保留，可重试');}
     if(keywordRun){await acceptKeywordResult(this.store,task,result,directory);return;}
-    result=validateResult(task.input,result,task.mode==='titles_only'?task.result:null);
-    if(isolatedTitles)result.reportFile=task.result.reportFile;
+    const rawResult=structuredClone(result);let titleRecovery=null;
+    try{result=validateResult(task.input,result,task.mode==='titles_only'?task.result:null);}
+    catch(error){titleRecovery=await recoverTitleResult(this.store,task,rawResult,error,task.mode==='titles_only'?task.result:null,{reportRoot:directory});result=titleRecovery.result;}
+    if(isolatedTitles&&!titleRecovery)result.reportFile=task.result.reportFile;
     if(frozenReport!==null&&result.titles.length===2){
-      const original=frozenReport.replace('- 状态：标题待重新生成。旧标题及报告已归档。','- 状态：两条标题已按当前流量词重新生成并通过校验。').replace('- 状态：**联合调研已完成，标题待模板**。两套标题模板尚未提供，标题未生成。','- 状态：**两条标题已生成并通过校验**；竞品与流量词沿用原实际核对日期。').replace(/\n## 标题一[\s\S]*$/,'').replace(/\n## 缺口与下一步[\s\S]*$/,'');
+      const original=frozenReport.replace('- 状态：标题校验未通过，已保存竞品与流量词。','- 状态：两条标题已按已保存资料重新生成并通过校验。').replace('- 状态：标题待重新生成。旧标题及报告已归档。','- 状态：两条标题已按当前流量词重新生成并通过校验。').replace('- 状态：**联合调研已完成，标题待模板**。两套标题模板尚未提供，标题未生成。','- 状态：**两条标题已生成并通过校验**；竞品与流量词沿用原实际核对日期。').replace(/\n## 标题一[\s\S]*$/,'').replace(/\n## 缺口与下一步[\s\S]*$/,'');
       const titleArchive=result.titles.map((t,i)=>`\n## 标题${i===0?'一':'二'}\n\n\u0060\u0060\u0060text\n${t.text}\n\u0060\u0060\u0060\n`).join('');
       const reportFile=isolatedTitles?path.posix.join(path.posix.dirname(task.result.reportFile),`titles-${randomUUID()}.md`):'report.md';
       await fs.writeFile(path.join(rootDirectory,reportFile),original+'\n'+titleArchive);
@@ -262,6 +265,6 @@ export class TaskRunner {
     }
     if(result.reportFile)await realFile(rootDirectory,result.reportFile);
     for(const c of result.competitors)await realFile(rootDirectory,c.imageFile);
-    await this.store.patch(id,current=>['cancelled','cancelling'].includes(current.state)?{}:{result,...(result.titles.length===2?{titlesStale:false}:{}),state:result.status,loginBarrier:result.status==='needs_login',stage:result.status==='completed'?'done':current.stage,message:String(result.message||'已保存当前实际结果').slice(0,1000),finishedAt:new Date().toISOString()});
+    await this.store.patch(id,current=>['cancelled','cancelling'].includes(current.state)?{}:{...titleRecovery,result,...(result.titles.length===2?{titlesStale:false,titleValidationError:null}:{}),state:result.status,loginBarrier:result.status==='needs_login',stage:result.status==='completed'?'done':current.stage,message:String(result.message||'已保存当前实际结果').slice(0,1000),finishedAt:new Date().toISOString()});
   }
 }

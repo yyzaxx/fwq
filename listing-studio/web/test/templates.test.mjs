@@ -45,3 +45,8 @@ test('支持通用组合，缺少第二套模板或非法范围时不保存',asy
     assert.equal(store.list().length,1);
   }finally{await fs.rm(root,{recursive:true,force:true});}
 });
+test('历史多行模板重命名只改名称，不重写正文的换行或字符范围',async t=>{
+ const {renameSavedTemplate}=await import('../public/template-form.js');const root=await fs.mkdtemp(path.join(os.tmpdir(),'listing-legacy-rename-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+ const file=path.join(root,'templates.json'),legacy={id:'legacy-preset',...preset,templateOne:'Brand {主体} Wall Art\n',templateTwo:'Brand {主体}\r\nWall Art, {风格}',createdAt:'2026-11-01T00:00:00.000Z',updatedAt:'2026-11-01T00:00:00.000Z'};await fs.writeFile(file,JSON.stringify([legacy]));const store=await new TemplateStore(file).init();
+ const renamed=await store.update(legacy.id,renameSavedTemplate(legacy,'新名称'));assert.equal(renamed.name,'新名称');assert.equal(renamed.templateOne,legacy.templateOne);assert.equal(renamed.templateTwo,legacy.templateTwo);assert.deepEqual(renamed.ranges,legacy.ranges);
+});

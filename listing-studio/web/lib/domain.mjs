@@ -1,5 +1,6 @@
 import path from 'node:path';
 
+export const normaliseTemplate=value=>String(value??'').replace(/\r\n?/g,'\n').replace(/^\n+|\n+$/g,'').replace(/\n/g,' ');
 export const tokenise = text => String(text).match(/[\p{L}\p{N}]+/gu) || [];
 export function templateParts(template) {
   const matches=[...template.matchAll(/\{([^{}]+)\}/g)];
@@ -11,7 +12,7 @@ export function validateInput(raw) {
   if (!category || category.length>80) throw new Error('请填写有效的商品类目');
   const ranges=raw.ranges || [[65,75],[115,125]];
   if (!Array.isArray(ranges)||ranges.length!==2) throw new Error('请设置两条标题的字符范围');
-  const output={category,templateOne:String(raw.templateOne||''),templateTwo:String(raw.templateTwo||''),ranges};
+  const output={category,templateOne:normaliseTemplate(raw.templateOne),templateTwo:normaliseTemplate(raw.templateTwo),ranges};
   for (const [i,key] of ['templateOne','templateTwo'].entries()) {
     const template=output[key];
     if (!template.trim() || template.length>1500) throw new Error(`请填写标题${i===0?'一':'二'}模板`);
@@ -31,6 +32,7 @@ export function detectImage(buffer) {
   throw new Error('图片格式无效，请上传 JPG、PNG 或 WebP 图片');
 }
 export function renderTemplate(template,slots) {
+  template=normaliseTemplate(template);
   const parts=templateParts(template);
   if (!Array.isArray(slots)||slots.length!==parts.length) throw new Error('标题模板占位数量不一致');
   let index=0;
@@ -46,9 +48,9 @@ export function auditTitles(input,titles,sources) {
   for (const keyword of sources.keywords||[]) for (const word of tokenise(keyword.term)) if (!bank.has(word.toLowerCase())) bank.set(word.toLowerCase(),{type:'sif',source:keyword.term});
   for (const competitor of sources.competitors||[]) for (const word of tokenise(competitor.title)) if (!bank.has(word.toLowerCase())) bank.set(word.toLowerCase(),{type:'competitor',source:competitor.asin});
   return titles.map((title,index)=>{
-    const template=index===0?input.templateOne:input.templateTwo;
+    const template=normaliseTemplate(index===0?input.templateOne:input.templateTwo);
     const rendered=renderTemplate(template,title.slots);
-    if (rendered!==title.text) throw new Error(`标题${index+1}改动了模板固定文字或标点`);
+    if (typeof title.text!=='string'||rendered!==normaliseTemplate(title.text)) throw new Error(`标题${index+1}改动了模板固定文字或标点`);
     const words=title.slots.flatMap(slot=>tokenise(slot.value));
     const fixed=tokenise(template.replace(/\{[^{}]+\}/g,'')).map(x=>x.toLowerCase());
     const wordSources=words.map(word=>{
@@ -60,7 +62,7 @@ export function auditTitles(input,titles,sources) {
     const length=Array.from(rendered).length;
     const [min,max]=input.ranges[index];
     if (length<min||length>max) throw new Error(`标题${index+1}为${length}字符，未达到${min}–${max}字符范围`);
-    return {...title,length,min,max,wordSources,verified:true};
+    return {...title,text:rendered,length,min,max,wordSources,verified:true};
   });
 }
 export function resolveWithin(root,relative) {

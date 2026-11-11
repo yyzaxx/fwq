@@ -42,6 +42,8 @@ export class TemplateStore {
     return this.mutate(items=>{
       const index=items.findIndex(x=>x.id===id);if(index<0)throw fault('模板不存在，可能已被删除，请刷新',404);
       const previous=items[index];
+      // A rename must not rewrite a legacy body's formatting.
+      for(const key of ['templateOne','templateTwo'])if(raw[key]===previous[key])value[key]=previous[key];
       if(raw.expectedUpdatedAt&&raw.expectedUpdatedAt!==previous.updatedAt)throw fault('模板已在其他页面修改，请刷新后再保存',409);
       if(items.some(x=>x.id!==id&&sameName(x,value)))throw fault('该类目已有同名模板，请换一个名称',409);
       const updatedAt=new Date(Math.max(Date.now(),Date.parse(previous.updatedAt)+1)).toISOString();

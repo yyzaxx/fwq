@@ -21,3 +21,8 @@ test('删除到零个词后仍提供重新采集入口，运行中禁用选词�
 test('新词库尚未生成标题时可直接使用已保存模板生成，不需要重新填表',async()=>{
  const h=await harness();vm.runInContext('state.tasks[0].titlesStale=true;',h.context);assert.match(vm.runInContext('titleTab(state.tasks[0])',h.context),/按新词库生成标题/);await h.click('regenerate-titles');const call=h.calls.find(c=>c.url.endsWith('/resume'));assert.ok(call);assert.deepEqual(JSON.parse(call.options.body),{templateOne:'{主体}',templateTwo:'{主体}'});
 });
+test('标题校验失败后展示已保留资料和重新生成入口，不误称词库已修改',async()=>{
+ const h=await harness();vm.runInContext("state.tasks[0].titlesStale=true;state.tasks[0].titleValidationError='标题1改动了模板固定文字或标点';",h.context);
+ const title=vm.runInContext('titleTab(state.tasks[0])',h.context);assert.match(title,/标题校验未通过/);assert.match(title,/使用已有资料生成标题/);assert.doesNotMatch(title,/流量词已更新/);
+ const words=vm.runInContext('wordsTab(state.tasks[0])',h.context);assert.doesNotMatch(words,/词库已修改/);assert.match(words,/使用已有资料生成标题/);
+});
