@@ -167,6 +167,7 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
     server.once('listening',()=>{void check();timer=setInterval(()=>void check(),1000);timer.unref();});
     server.once('close',()=>clearInterval(timer));
   }
+  server.once('close',()=>runner.dispose());
   return {server,store,runner,batches,batchManager,basePath};
 }
 

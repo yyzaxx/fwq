@@ -69,8 +69,8 @@ export function keywordPrompt(task,directory,browserUrl,maxPages){
  +`已经核实但尚未采用的新词：${JSON.stringify(job.collectedKeywords||[])}；已查ASIN：${JSON.stringify(job.searchedAsins||[])}。仅返回本轮新增词，不重复返回已核实候选。尚缺 ${15-(job.collectedKeywords?.length||0)} 条；每批扩充3–5个不同新商品ASIN并查询，仍不足则继续下一批；不要把颜色/尺寸变体计为新竞品。查询台账保存 sif-search-log.json，以便继续补缺口。\n`
  +`排除词（按大小写、空白和全半角归一后均不得再入选）：${JSON.stringify(job.excludedTerms)}。另有不可更改的保留词：${JSON.stringify(keep)}，新词也不能与它们重复。\n`
  +`必须实际访问 Sif US 重新查询核实，不能只从旧报告或旧截图抄候选。保留实际返回原词，须与商品相关并带主题、风格、人群、场景或礼品用途限定；排除纯品类核心词、无关品牌、错误类目、未确认属性。记录种子、真实查询链接、来源行、周期及周/月口径、搜索量真实状态；缺失搜索量用null并说明，不得拿排名当搜索量。保存本轮查询证据至 artifacts/，新词可含 evidenceFile 为相对证据路径。\n`
- +`进度写 progress.json，stage:sif，message:中文实际进度。遇真正的人机验证或Sif登录停止自动操作、保留页面，result.json status:needs_login；无合格词用partial或needs_input，说明原因。不要为凑数编造。\n`
- +`最终只写 result.json：{"status":"completed|partial|needs_login|needs_input","message":"真实中文状态","searchedAsins":["本轮实际查询的真实ASIN"],"keywords":[{"term":"Sif实际原词","seed":"真实种子","queryUrl":"https://www.sif.com/实际查询链接","period":"真实周期与口径","volume":null,"volumeStatus":"未展示的具体原因","sourcePosition":"实际结果第几行","evidenceFile":"artifacts/本轮证据.json"}]}。数组只放本轮新采集的词，不返回旧词库、竞品或标题。网站核验并累计达到15条后才替换原词表；不足是未完成检查点，不是最终交付。不得编造ASIN或原词；登录/验证码时停止，保留真实缺口。`;
+ +`进度写 progress.json，stage:sif，message:中文实际进度。遇Amazon人机验证写needs_login及browserBlock后立即结束，工作台关闭页面并等待30分钟；遇Sif登录或验证码停止自动操作、保留页面，result.json status:needs_login；无合格词用partial或needs_input，说明原因。不要为凑数编造。\n`
+ +`最终只写 result.json：{"status":"completed|partial|needs_login|needs_input","browserBlock":null,"message":"真实中文状态","searchedAsins":["本轮实际查询的真实ASIN"],"keywords":[{"term":"Sif实际原词","seed":"真实种子","queryUrl":"https://www.sif.com/实际查询链接","period":"真实周期与口径","volume":null,"volumeStatus":"未展示的具体原因","sourcePosition":"实际结果第几行","evidenceFile":"artifacts/本轮证据.json"}]}。数组只放本轮新采集的词，不返回旧词库、竞品或标题。网站核验并累计达到15条后才替换原词表；不足是未完成检查点，不是最终交付。不得编造ASIN或原词；登录/验证码时停止，保留真实缺口。`;
 }
 
 export async function acceptKeywordResult(store,task,output,directory){
