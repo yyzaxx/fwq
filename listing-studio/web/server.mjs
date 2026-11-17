@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {KeywordTranslationManager} from './lib/keyword-translations.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,12 +31,13 @@ async function readBody(req,maxBytes=64*1024){
 function publicTask(task){
   const {events,...rest}=task;return {...rest,events:events.slice(-20),counts:{competitors:task.result?.competitors?.length||0,keywords:task.result?.keywords?.length||0,titles:task.result?.titles?.length||0}};
 }
-export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath='/listing-app/',importExisting=true,runnerEnabled=true,browserUrl=BROWSER,browserWatchdogEnabled=runnerEnabled}={}){
+export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath='/listing-app/',importExisting=true,runnerEnabled=true,browserUrl=BROWSER,browserWatchdogEnabled=runnerEnabled,keywordTranslator}={}){
   if(!basePath.startsWith('/')||!basePath.endsWith('/'))throw new Error('basePath 必须以斜线起止');
   const store=await new TaskStore(dataRoot).init();
   const templates=await new TemplateStore(path.join(dataRoot,'templates.json')).init();
   if(importExisting)await importHistory(store,path.dirname(ROOT));
   const runner=new TaskRunner(store,{browserUrl,enabled:false});
+  const keywordTranslations=await new KeywordTranslationManager(store,keywordTranslator?{translate:keywordTranslator}:{}).init();
   const restarter=new TaskRestarter(store,runner);
   const keywordManager=new KeywordManager(store,runner);
   const batches=await new TaskStore(path.join(dataRoot,'_batches')).init();
@@ -65,6 +67,10 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
         if(!same)return reply(res,403,{error:'请从本站提交任务'});
       }
       if(req.method==='GET'&&route==='api/bootstrap')return reply(res,200,{tasks:store.list().map(publicTask),batches:batchManager.list(),queue:runner.info(),templates:templates.list(),health:await health()});
+      if(req.method==='GET'&&route==='api/keyword-blacklist')return reply(res,200,store.blacklist.list());
+      if(req.method==='POST'&&route==='api/keyword-blacklist'){
+        const body=await readBody(req);return reply(res,200,await store.blacklist.change(body.action,body.term));
+      }
       if(req.method==='GET'&&route==='api/queue')return reply(res,200,runner.info());
       if(req.method==='POST'&&route==='api/queue/resume-all'){await readBody(req);return reply(res,200,await runner.resumeAll());}
       if(req.method==='POST'&&route==='api/queue/resume'){await readBody(req);await runner.resumeLogin();return reply(res,200,runner.info());}
@@ -121,11 +127,12 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
         return reply(res,201,publicTask(store.get(task.id)));
         }finally{imageUploads--;}
       }
-      const match=route.match(/^api\/tasks\/([a-zA-Z0-9-]{5,80})(?:\/(resume|restart|keywords|cancel|file|report|report\.md|download))?$/);
+      const match=route.match(/^api\/tasks\/([a-zA-Z0-9-]{5,80})(?:\/(resume|restart|keywords|keyword-translations|cancel|file|report|report\.md|download))?$/);
       if(match){
         const [,id,action]=match,task=store.get(id);if(!task)return reply(res,404,{error:'任务不存在'});
         const directory=store.directory(id);
         if(req.method==='GET'&&!action)return reply(res,200,publicTask(task));
+        if(req.method==='POST'&&action==='keyword-translations'){await readBody(req);return reply(res,200,publicTask(await keywordTranslations.enrich(id)));}
         if(req.method==='POST'&&action==='keywords')return reply(res,200,publicTask(await keywordManager.change(id,await readBody(req))));
         if(req.method==='POST'&&action==='restart'){await readBody(req);return reply(res,200,publicTask(await restarter.start(id)));}
         if(req.method==='DELETE'&&!action){await readBody(req);return reply(res,200,await batchManager.removeTask(id));}

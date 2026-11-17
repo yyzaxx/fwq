@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep Buddy2api aligned with the existing WorkBuddy login
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=buddy2api-sync.service
+
+[Install]
+WantedBy=timers.target

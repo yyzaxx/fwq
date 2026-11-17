@@ -1,3 +1,4 @@
+import {validTranslation} from './keyword-translations.mjs';
 import path from 'node:path';
 
 export const normaliseTemplate=value=>String(value??'').replace(/\r\n?/g,'\n').replace(/^\n+|\n+$/g,'').replace(/\n/g,' ');
@@ -84,6 +85,7 @@ export function validateResult(input,result,frozenSources=null) {
   if(result.reportFile&&!String(result.reportFile).endsWith('.md'))throw new Error('联合报告必须为Markdown文件');
   const seen=new Set();
   for (const keyword of result.keywords) {
+    if(keyword.translationZh!==undefined&&!validTranslation(keyword.translationZh))delete keyword.translationZh;
     if (typeof keyword.term!=='string'||!keywordKey(keyword.term)||!tokenise(keyword.term).length||seen.has(keywordKey(keyword.term))) throw new Error('原词列表为空或包含重复词');
     seen.add(keywordKey(keyword.term));
     const url=new URL(keyword.queryUrl);

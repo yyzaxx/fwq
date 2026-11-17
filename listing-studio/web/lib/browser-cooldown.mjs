@@ -2,7 +2,6 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {writeArtifact} from './artifacts.mjs';
 
-export const AMAZON_COOLDOWN_MS=30*60*1000;
 export function isAmazonVerification(result){
  if(result?.status!=='needs_login')return false;
  if(result.browserBlock)return result.browserBlock.site==='amazon'&&result.browserBlock.kind==='human_verification';

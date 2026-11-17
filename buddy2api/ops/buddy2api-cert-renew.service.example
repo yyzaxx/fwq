@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew Buddy2api public HTTPS certificate
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/buddy2api-ops/certbot/bin/certbot renew --no-random-sleep-on-renew --cert-name buddy2api-ip --quiet --deploy-hook "/usr/bin/systemctl reload nginx"
+TimeoutStartSec=600
+UMask=0077

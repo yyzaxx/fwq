@@ -1,0 +1,18 @@
+[Unit]
+Description=Optional per-site website password settings gateway
+After=network.target nginx.service workbuddy-panel.service octop.service deepseek-harness-proxy.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/node /opt/site-access/server.cjs
+Restart=always
+RestartSec=2
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/site-access
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

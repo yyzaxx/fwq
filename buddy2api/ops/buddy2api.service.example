@@ -1,0 +1,27 @@
+[Unit]
+Description=Buddy2api WorkBuddy private model gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=buddy2api
+Group=buddy2api
+WorkingDirectory=/opt/buddy2api
+EnvironmentFile=/etc/buddy2api.env
+ExecStart=/opt/buddy2api/.venv/bin/python /opt/buddy2api/server.py --host 127.0.0.1 --port 18878 --no-browser
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/buddy2api
+MemoryHigh=256M
+MemoryMax=384M
+TasksMax=64
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

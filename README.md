@@ -1,8 +1,8 @@
 # 服务器项目代码
 
-## 轻单
+## 轻单（已下线，源码归档）
 
-`qingdan/` 是所有设备共用的任务清单，包含网页、Node.js/SQLite 后端、自动化测试和 Nginx/systemd 部署配置。
+轻单已于2026-11-12从当前服务器下线，以下源码仅供归档，不默认重新部署。`qingdan/` 是任务清单，包含网页、Node.js/SQLite 后端、自动化测试和 Nginx/systemd 部署配置。
 
 ```sh
 cd qingdan
@@ -24,7 +24,7 @@ DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
 
 ## Listing Studio
 
-`listing-studio/` 是商品图片调研与英文标题工作台，包含网站源码、100项自动测试、专用浏览器启动脚本及 Nginx/systemd 资源保护配置。支持图片与 ZIP 批量调研、两套模板、报告下载、历史删除、任务重新开始、一键恢复暂停任务和最多2个浏览器标签页。运行依赖与部署步骤见 [Listing Studio 说明](listing-studio/README.md)。
+`listing-studio/` 是商品图片调研与英文标题工作台，包含网站源码、166项自动测试、专用浏览器启动脚本及 Nginx/systemd 资源保护配置。支持全局流量词黑名单、中文释义显示且复制保留英文原词、仅Sif当前反查、图片与 ZIP 批量调研、两套模板、报告下载、历史删除、任务重新开始、一键恢复暂停任务和最多2个浏览器标签页。Amazon验证后的固定30分钟等待已取消，简单“我是人类”控件按用户授权尝试一次，未通过则保留页面暂停。运行依赖与部署步骤见 [Listing Studio 说明](listing-studio/README.md)。
 
 任务记录、商品图片、报告、模板库、Cookie、浏览器 profile、账号凭据与私人访问路径不包含在内。
 
@@ -46,3 +46,10 @@ DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
 小内存机器上的 ClawChat、Octop、后台任务调度、zswap 及 Docker 按需启动配置见 [服务器运行优化](server-runtime/optimization/README.md)。
 
 完整目录及新机器部署入口见 [deploy/ALL-PROGRAMS.md](deploy/ALL-PROGRAMS.md)。第三方代码保留各自版权和许可证；所有新收录目录均不包含现有账号凭据、Cookie、数据库、运行日志或个人记忆。盘搜 Pansou 已删除，不收录或恢复。
+
+## WorkBuddy 模型网关与统一入口
+
+- [buddy2api/](buddy2api/)：Buddy2api v2.2.24完整上游源码、MIT许可证、独立服务、本人账号访问令牌同步及IP HTTPS部署模板。
+- [site-access/](site-access/)：现有业务网页的访问密码与本机后端代理源码，私有口令和状态不上传。
+
+DeepSeek Harness与轻单已从当前服务器运行入口移除；历史源码如仍在仓库中，只作归档。

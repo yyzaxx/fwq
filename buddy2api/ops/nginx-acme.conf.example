@@ -1,0 +1,11 @@
+# First install only this HTTP server, obtain the IP certificate, then replace it with nginx-public.conf.example.
+server {
+    listen YOUR_BIND_IP:80;
+    server_name YOUR_PUBLIC_IP;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/buddy2api-acme;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+    location / { return 404; }
+}

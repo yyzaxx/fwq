@@ -1,0 +1,16 @@
+[Unit]
+Description=Sync one existing WorkBuddy access token to Buddy2api
+After=buddy2api.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/buddy2api/.venv/bin/python /opt/buddy2api-ops/sync-account.py
+Environment=PYTHONDONTWRITEBYTECODE=1
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateNetwork=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/buddy2api
+MemoryMax=128M

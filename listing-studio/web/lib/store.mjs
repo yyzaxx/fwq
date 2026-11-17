@@ -1,11 +1,13 @@
 import fs from 'node:fs/promises';
+import {KeywordBlacklist} from './keyword-blacklist.mjs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 export class TaskStore {
-  constructor(root){this.root=path.resolve(root);this.tasks=new Map();this.locks=new Map();}
+  constructor(root){this.root=path.resolve(root);this.tasks=new Map();this.locks=new Map();this.blacklist=new KeywordBlacklist(this.root);}
   async init(){
     await fs.mkdir(this.root,{recursive:true,mode:0o700});
+    await this.blacklist.init();
     for (const entry of await fs.readdir(this.root,{withFileTypes:true})) {
       if (!entry.isDirectory()||!/^[a-zA-Z0-9-]{5,80}$/.test(entry.name)) continue;
       try {const task=JSON.parse(await fs.readFile(path.join(this.root,entry.name,'task.json'),'utf8'));if(task.id===entry.name)this.tasks.set(task.id,task);}catch{}

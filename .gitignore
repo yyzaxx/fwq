@@ -23,3 +23,23 @@ node_modules/
 **/test-results/
 backups/
 .ssh/
+
+# Model gateway runtime secrets and local environments
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/.runtime.json
+**/credentials.env
+**/state.json
+**/panel.password
+**/panel.secret
+**/buddy2api-client.json
+**/buddy2api-public-login.json
+**/buddy2api-account.json
+**/buddy2api.env
+**/buddy2api.htpasswd
+**/buddy2api-admin-proxy.inc
+**/gateway.db*
+**/keyword-translations.json
+**/keyword-blacklist.json
+**/browser-cooldown.json

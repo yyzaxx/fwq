@@ -1,0 +1,71 @@
+map $http_origin $buddy2api_bad_origin {
+    default 1;
+    "" 0;
+    "https://YOUR_PUBLIC_IP" 0;
+}
+map $http_sec_fetch_site $buddy2api_cross_site {
+    default 0;
+    cross-site 1;
+}
+limit_req_zone $binary_remote_addr zone=buddy2api_web:10m rate=10r/s;
+server {
+    listen YOUR_BIND_IP:80;
+    server_name YOUR_PUBLIC_IP;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/lib/buddy2api-acme;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+    location / { return 301 https://YOUR_PUBLIC_IP$request_uri; }
+}
+server {
+    listen YOUR_BIND_IP:443 ssl default_server;
+    server_name YOUR_PUBLIC_IP;
+    ssl_certificate /etc/letsencrypt/live/buddy2api-ip/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/buddy2api-ip/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:Buddy2apiTLS:1m;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy same-origin always;
+    add_header X-Frame-Options DENY always;
+    auth_basic "Buddy2api";
+    auth_basic_user_file /etc/nginx/buddy2api.htpasswd;
+    limit_req zone=buddy2api_web burst=60 nodelay;
+    client_max_body_size 8m;
+
+    location = / {
+        proxy_pass http://127.0.0.1:18878;
+        proxy_set_header Host 127.0.0.1:18878;
+        proxy_set_header Authorization "";
+        proxy_set_header Accept-Encoding "";
+        proxy_set_header X-Forwarded-Proto https;
+        sub_filter_once off;
+        sub_filter "if(t)h.Authorization='Bearer '+t;" "";
+        sub_filter "if(p.token)h.Authorization='Bearer '+p.token;" "";
+        sub_filter "token=ref(localStorage.getItem('cb_gw_token')||'')" "token=ref('')";
+        sub_filter '<div class="card" v-if="!localMode">' '<div class="card" v-if="false">';
+    }
+    location /web/ {
+        proxy_pass http://127.0.0.1:18878;
+        proxy_set_header Host 127.0.0.1:18878;
+        proxy_set_header Authorization "";
+    }
+    location /admin/ {
+        if ($buddy2api_bad_origin) { return 403; }
+        if ($buddy2api_cross_site) { return 403; }
+        proxy_pass http://127.0.0.1:18878;
+        proxy_set_header Host 127.0.0.1:18878;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        include /etc/nginx/buddy2api-admin-proxy.inc;
+        proxy_read_timeout 180s;
+        proxy_send_timeout 180s;
+    }
+    location = /health {
+        proxy_pass http://127.0.0.1:18878;
+        proxy_set_header Host 127.0.0.1:18878;
+        proxy_set_header Authorization "";
+    }
+    location / { return 404; }
+}

@@ -1,2 +1,5 @@
 # 补丁保留原文件换行字节，以便应用到 CRLF 引擎源码。
 *.patch -text whitespace=cr-at-eol
+
+# 上游快照保留原始CRLF、Markdown硬换行和原始空行；自有源码仍使用常规检查。
+buddy2api/source/** whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof

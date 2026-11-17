@@ -6,7 +6,7 @@ paths.trash='M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7';
 const icon=name=>`<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name]||paths.file}"/></svg>`;
 const stateNames={staged:'等待入队',queued:'排队中',running:'正在处理',cancelling:'正在停止',completed:'已完成',needs_input:'待补充资料',needs_login:'等待浏览器处理',partial:'部分完成',failed:'执行中断',cancelled:'已停止'};
 const freshForm=()=>({category:'',templateOne:'',templateTwo:'',ranges:[[65,75],[115,125]],presetId:'',presetCategory:'',imageData:'',imageName:'',imageSize:0,reuseId:null,imagePreview:'',batchId:'',batchPreview:null,archiveUploading:false,archiveName:''});
-const state={tasks:[],batches:[],queue:{},selectedBatch:null,templates:[],health:{},screen:'new',selected:null,tab:'titles',filter:'all',search:'',form:freshForm(),busy:false,resumingAll:false,restartingId:null,keywordBusyId:null,error:''};
+const state={tasks:[],batches:[],queue:{},selectedBatch:null,templates:[],blacklist:[],health:{},screen:'new',selected:null,tab:'titles',filter:'all',search:'',form:freshForm(),busy:false,resumingAll:false,restartingId:null,keywordBusyId:null,error:''};
 try{Object.assign(state.form,JSON.parse(localStorage.getItem('listing-draft')||'{}'));}catch{}
 const apiUrl=route=>new URL('api/'+route,location.href.split('?')[0]).href;
 const asset=(task,file)=>apiUrl(`tasks/${task.id}/file?path=`+encodeURIComponent(file));
@@ -72,12 +72,50 @@ function titleTab(task){
   return titles.map((title,i)=>`<section class="panel title-result"><div class="title-result-head"><h3>标题${i===0?'一':'二'} <span>· ${title.length} / ${title.min}–${title.max} 字符</span></h3><button class="button small" data-action="copy-title" data-index="${i}">${icon('copy')}复制标题</button></div><div class="title-result-text">${esc(title.text)}</div><div class="checks"><span>${icon('check')}固定文字保留</span><span>${icon('check')}占位词源已核对</span><span>${icon('check')}字符范围通过</span></div><details class="sources"><summary>查看占位词的具体来源</summary><div class="source-list">${(title.wordSources||[]).map(s=>`<span class="source-word" title="${esc(s.type==='sif'?'Sif 原词：'+s.source:'竞品 ASIN：'+s.source)}">${esc(s.word)}<small>${esc(s.type==='sif'?'Sif 原词':s.source)}</small></span>`).join('')}</div></details></section>`).join('');
 }
 function canChangeKeywords(task){return canDeleteTask(task)&&task.id!==state.queue.activeId&&!state.keywordBusyId&&!!task.result?.competitors?.length;}
+// Keyword translation display helpers.
+const keywordTranslationRequests=new Map(),keywordTranslationFailures=new Map();
+const keywordTranslationSignature=task=>JSON.stringify((task.result?.keywords||[]).map(word=>word.term));
+const keywordMeaning=word=>typeof word.translationZh==='string'?word.translationZh.trim():'';
+function preserveDisplayedKeywordMeanings(incoming,previous){
+  const displayed=new Map(previous.map(task=>[task.id,new Map((task.result?.keywords||[]).filter(word=>keywordMeaning(word)).map(word=>[word.term,keywordMeaning(word)]))]));
+  return incoming.map(task=>{
+    const meanings=displayed.get(task.id);if(!meanings?.size||!task.result?.keywords)return task;
+    return {...task,result:{...task.result,keywords:task.result.keywords.map(word=>keywordMeaning(word)||!meanings.has(word.term)?word:{...word,translationZh:meanings.get(word.term)})}};
+  });
+}
+function keywordTranslationNotice(task){
+  if(!(task.result?.keywords||[]).some(word=>!keywordMeaning(word)))return '';
+  const error=keywordTranslationFailures.get(task.id),failed=error?.signature===keywordTranslationSignature(task);
+  return `<div class="keyword-notice keyword-translation-notice" role="status"><span>${failed?'中文释义暂未生成，英文流量词仍可正常复制。':'中文释义生成中…英文流量词仍可正常复制。'}</span>${failed?`<button class="button small" data-action="retry-keyword-translations" data-id="${esc(task.id)}">重试中文释义</button>`:''}</div>`;
+}
+async function ensureKeywordTranslations(id=state.selected,{retry=false}={}){
+  const task=state.tasks.find(item=>item.id===id);
+  if(!task||(task.result?.keywords||[]).every(word=>keywordMeaning(word))||keywordTranslationRequests.has(id))return;
+  const signature=keywordTranslationSignature(task);
+  if(!retry&&keywordTranslationFailures.get(id)?.signature===signature)return;
+  keywordTranslationFailures.delete(id);keywordTranslationRequests.set(id,signature);
+  try{
+    await api(`tasks/${id}/keyword-translations`,{method:'POST',body:'{}'});
+    const latest=await api(`tasks/${id}`),meanings=new Map((latest.result?.keywords||[]).filter(word=>keywordMeaning(word)).map(word=>[word.term,keywordMeaning(word)]));
+    const current=state.tasks.find(item=>item.id===id);
+    // 只合并同一个英文原词的释义，异步响应不能恢复已删除词或覆盖新状态。
+    if(current?.result?.keywords)current.result.keywords=current.result.keywords.map(word=>meanings.has(word.term)?{...word,translationZh:meanings.get(word.term)}:word);
+    if(current&&keywordTranslationSignature(current)===signature&&current.result.keywords.some(word=>!keywordMeaning(word)))keywordTranslationFailures.set(id,{signature});
+  }catch{
+    keywordTranslationFailures.set(id,{signature});
+  }finally{
+    keywordTranslationRequests.delete(id);
+    if(state.screen==='detail'&&state.tab==='words'&&state.selected===id)render();
+  }
+}
+// End keyword translation display helpers.
+function blacklistPanel(){return `<details class="keyword-notice"><summary>全局流量词黑名单（${state.blacklist.length}）</summary><p>仅匹配完整词，忽略大小写、空白和全半角差异；更长的词不受影响。解除后可在后续任务中重新采集。</p>${state.blacklist.length?state.blacklist.map(term=>`<div class="keyword-card"><span>${esc(term)}</span><button class="button small" data-action="unblacklist" data-term="${esc(term)}">解除拉黑</button></div>`).join(''):'<p>暂无拉黑词</p>'}</details>`;}
 function wordsTab(task){
   const words=task.result?.keywords||[],short=words.length<15&&(task.result?.competitors?.length||0)>=5,disabled=canChangeKeywords(task)?'':'disabled',job=task.keywordJob;
   const pending=job?.status==='pending'?`<div class="keyword-notice" role="status">${icon('clock')}<span>${job.action==='replace'?'正在为“'+esc(job.term)+'”寻找替代词。':'已请求重新采集全部流量词。'}${job.action==='refresh'?'已核实待采用新词 '+(job.collectedKeywords?.length||0)+'/15 条，攒满15条才替换。':''}核验成功前保留当前词表；暂停后可点“继续任务”。</span></div>`:'';
   const stale=task.titlesStale?`<div class="keyword-notice"><span>${task.titleValidationError?'竞品和流量词已保存，标题校验未通过，可使用已有资料重新生成。':'词库已修改，旧标题已归档。请按当前词库重新生成标题。'}</span><button class="button small" data-action="regenerate-titles" data-id="${task.id}" ${disabled}>${titleActionLabel(task)}</button></div>`:'';
   const controls=`<div class="keyword-tools">${short&&job?.status!=='pending'?`<button class="button small primary" data-action="resume" data-id="${task.id}" ${disabled}>补齐15条流量词</button>`:''}<button class="button small" data-action="keyword-refresh" data-id="${task.id}" ${disabled}>${icon('refresh')}全部重新采集</button><button class="button small" data-action="copy-words" ${words.length?'':'disabled'}>${icon('copy')}复制全部原词</button></div>`;
-  return `<section class="panel"><div class="words-head"><div><strong>${words.length} 个 Sif 原始流量词</strong><p>不满意可删除或换一个；全部重采会排除现有词。竞品保留。</p></div>${controls}</div>${task.keywordCollection?.status==='pending'?`<div class="keyword-notice" role="status">已核实 ${words.length}/15 条，继续扩充相似竞品ASIN反查；不足15条尚未完成。</div>`:''}${pending}${stale}${words.length?`<div class="keyword-chips keyword-cards">${words.map(w=>`<div class="keyword-card"><span>${esc(w.term)}</span><div class="keyword-actions"><button class="button small" data-action="keyword-replace" data-id="${task.id}" data-term="${esc(w.term)}" aria-label="换一个：${esc(w.term)}" ${disabled}>${icon('refresh')}换一个</button><button class="button small danger" data-action="keyword-delete" data-id="${task.id}" data-term="${esc(w.term)}" aria-label="删除词：${esc(w.term)}" ${disabled}>${icon('trash')}删除</button></div></div>`).join('')}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>原始流量词</th><th>搜索量</th><th>周期与口径</th><th>实际种子</th><th>查询来源</th></tr></thead><tbody>${words.map((w,i)=>`<tr><td>${String(i+1).padStart(2,'0')}</td><td class="keyword">${esc(w.term)}</td><td class="${w.volume===null?'muted':''}" title="${esc(w.volumeStatus)}">${w.volume===null?'—':Number(w.volume).toLocaleString('en-US')}</td><td>${esc(w.period)}</td><td>${esc(w.seed)}</td><td><a href="${esc(w.queryUrl)}" target="_blank" rel="noopener noreferrer" title="${esc(w.sourcePosition)}">打开来源 ${icon('link')}</a></td></tr>`).join('')}</tbody></table></div>`:'<div class="waiting keyword-empty"><h3>尚无流量词</h3><p>已有竞品时，可点“全部重新采集”去 Sif 查询新词。</p></div>'}<div class="table-note">新词须经 Sif 实际查询并保留来源；被去掉的词不再入选。采集失败保留原结果。<br>“—”表示数据未展示或权限受限，缺失数值不等于 0。运行或排队中的任务请先停止，再调整流量词。</div></section>`;
+  return `<section class="panel"><div class="words-head"><div><strong>${words.length} 个 Sif 原始流量词</strong><p>不满意可删除或换一个；全部重采会排除现有词。竞品保留。</p></div>${controls}</div>${blacklistPanel()}${keywordTranslationNotice(task)}${task.keywordCollection?.status==='pending'?`<div class="keyword-notice" role="status">已核实 ${words.length}/15 条，继续扩充相似竞品ASIN反查；不足15条尚未完成。</div>`:''}${pending}${stale}${words.length?`<div class="keyword-chips keyword-cards">${words.map(w=>`<div class="keyword-card"><div class="keyword-copy"><span class="keyword-original">${esc(w.term)}</span><span class="keyword-meaning" lang="zh-CN">${esc(keywordMeaning(w)||'释义生成中…')}</span></div><div class="keyword-actions"><button class="button small" data-action="keyword-replace" data-id="${task.id}" data-term="${esc(w.term)}" aria-label="换一个：${esc(w.term)}" ${disabled}>${icon('refresh')}换一个</button><button class="button small danger" data-action="keyword-blacklist" data-id="${task.id}" data-term="${esc(w.term)}" ${disabled}>拉黑</button><button class="button small danger" data-action="keyword-delete" data-id="${task.id}" data-term="${esc(w.term)}" aria-label="删除词：${esc(w.term)}" ${disabled}>${icon('trash')}删除</button></div></div>`).join('')}</div><div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>原始流量词</th><th>中文意思</th><th>搜索量</th><th>周期与口径</th><th>实际种子</th><th>查询来源</th></tr></thead><tbody>${words.map((w,i)=>`<tr><td>${String(i+1).padStart(2,'0')}</td><td class="keyword">${esc(w.term)}</td><td class="keyword-meaning-cell" lang="zh-CN">${esc(keywordMeaning(w)||'释义生成中…')}</td><td class="${w.volume===null?'muted':''}" title="${esc(w.volumeStatus)}">${w.volume===null?'—':Number(w.volume).toLocaleString('en-US')}</td><td>${esc(w.period)}</td><td>${esc(w.seed)}</td><td><a href="${esc(w.queryUrl)}" target="_blank" rel="noopener noreferrer" title="${esc(w.sourcePosition)}">打开来源 ${icon('link')}</a></td></tr>`).join('')}</tbody></table></div>`:'<div class="waiting keyword-empty"><h3>尚无流量词</h3><p>已有竞品时，可点“全部重新采集”去 Sif 查询新词。</p></div>'}<div class="table-note">新词须经 Sif 实际查询并保留来源；被去掉的词不再入选。采集失败保留原结果。<br>“—”表示数据未展示或权限受限，缺失数值不等于 0。运行或排队中的任务请先停止，再调整流量词。</div></section>`;
 }
 function competitorsTab(task){const list=task.result?.competitors||[];if(!list.length)return `<section class="panel waiting"><div class="waiting-icon">${icon('image')}</div><h3>正在等待竞品核实</h3><p>逐款核实 ASIN、完整原标题、所选变体和主图后，结果会保存在这里。</p></section>`;return `<div class="competitor-grid">${list.map((c,i)=>`<article class="panel"><div class="competitor-image"><span class="competitor-number">相似竞品 ${String(i+1).padStart(2,'0')}</span><img src="${asset(task,c.imageFile)}" alt="${esc(c.asin)} 官方主图" loading="lazy"></div><div class="competitor-body"><div class="competitor-meta"><a class="asin-link" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.asin)} ↗</a><span class="similarity">${esc(c.similarity)}</span></div><p>${esc(c.difference)}</p><details><summary>查看完整原标题与所选变体</summary><div class="competitor-full-title">${esc(c.title)}</div><div class="competitor-variant">${esc(c.variant)}</div></details></div></article>`).join('')}</div>`;}
 function reportTab(task){if(!task.result?.reportFile)return `<div class="panel waiting"><h3>报告尚未生成</h3><p>核实后的结果会汇总为一份含设计图、竞品与 Sif 来源的联合报告。</p></div>`;return `<div class="report-tools"><a class="button" href="${apiUrl(`tasks/${task.id}/report`)}" target="_blank" rel="noopener">${icon('eye')}独立打开</a><a class="button primary" href="${apiUrl(`tasks/${task.id}/download`)}">${icon('download')}下载报告与图片</a></div><iframe title="商品联合调研报告" class="report-frame" src="${apiUrl(`tasks/${task.id}/report`)}" sandbox="allow-same-origin allow-popups"></iframe>`;}
@@ -86,8 +124,8 @@ function detailScreen(){
   const result=task.result||{};
   return `<button class="back-button" data-action="history">${icon('back')}返回历史任务</button><div class="heading-row detail-heading"><div class="detail-top"><img src="${asset(task,task.previewFile)}" alt="商品设计参考图"><div><h1>${esc(task.name||task.input.category+'调研任务')}</h1><div class="detail-date"><span>${esc(task.input.category)} · 美国站</span><span>${date(task.createdAt)}</span>${badge(task)}</div></div></div><div class="detail-actions">${['running','queued','needs_login'].includes(task.state)?`<button class="button danger" data-action="cancel" data-id="${task.id}">${icon('stop')}停止任务</button>`:`<button class="button" data-action="edit" data-id="${task.id}">${icon('edit')}调整模板</button>`}${result.reportFile?`<a class="button primary" href="${apiUrl(`tasks/${task.id}/download`)}">${icon('download')}下载报告</a>`:''}${restartTaskButton(task)}${deleteTaskButton(task)}</div></div>${restartContext(task)}${progress(task)}${taskNotice(task)}<div class="detail-tabs">${[['titles','英文标题',result.titles?.length||0],['words','流量词',result.keywords?.length||0],['competitors','相似竞品',result.competitors?.length||0],['report','联合报告','']].map(([key,label,n])=>`<button class="${state.tab===key?'active':''}" data-action="tab" data-tab="${key}">${label}${n!==''?`<span>${n}</span>`:''}</button>`).join('')}</div><div id="result-content">${({titles:titleTab,words:wordsTab,competitors:competitorsTab,report:reportTab})[state.tab](task)}</div>${task.events?.length?`<details class="event-log"><summary>查看执行记录</summary>${task.events.slice(-8).map(e=>`<div class="event-line"><time>${date(e.time)}</time>${esc(e.message)}</div>`).join('')}</details>`:''}${footer()}`;
 }
-function helpScreen(){return `<div class="heading-row"><div><div class="eyebrow">A LITTLE GUIDANCE</div><h1>把资料交给我们，<span>把依据留给你。</span></h1><p class="intro">一次输入，串联相似竞品、Sif 原词与两条英文标题。</p></div></div><article class="panel help-panel"><h2>只需要准备三样资料</h2><p>一张商品参考图、实际商品类目，以及你自己的两套英文标题模板。</p><h3>一次上传多张图片</h3><p>把 JPG、PNG、WebP 图片放进 ZIP，上传后先检查清单，再统一填写类目、选择模板组并开始。每批最多100张，ZIP最大100MB，单图最大15MB、有效图片解压后合计最大300MB。图片按文件名顺序逐张处理，各自生成报告；不支持加密包、RAR或7z。混合类目请分批上传。遇人机验证或Sif登录时整个队列等待，处理后点“已处理，重启暂停任务”。单张失败后可继续处理后续图片，再单独重试失败图片。</p><h3>保存和自定义模板组名称</h3><p>填写两条模板后点“保存模板”，在“模板组名称（可自定义）”中输入自己的名字。已有组合先从下拉框选中，再点旁边的“重命名”，输入新名称并保存；这一步只改名称，不会保存输入框中的临时正文修改。</p><h3>怎么填写模板？</h3><p>保持品牌、尺寸等固定文字原样，用 <code>{主体风格}</code>、<code>{画风背景}</code>、<code>{补充图案}</code> 标记需要填词的位置。占位名称可以自己取，两套模板可以有不同结构。</p><p>默认标题一为 65–75 字符，标题二为 115–125 字符，空格和标点也计数。可在“调整字符范围”中更改。</p><h3>粘贴模板时的换行</h3><p>标题按单行生成：模板首尾换行会自动去掉，内部换行转为空格；固定文字、标点及普通空格保留。标题校验失败时仍保存已核实的竞品和流量词，可使用已有资料重新生成。</p><h3>结果为什么会暂停？</h3><p>亚马逊调研只用游客公开页面，无需账号登录。遇Amazon人机验证会保存进度、关闭调研页，整个队列等待30分钟后自动继续；再次验证重新等待。Sif需要登录或验证码时，仍需在现有浏览器手动处理后点击“已处理，继续”。如果来源词不足、字符范围无法自然满足，或模板与已知实物冲突，任务会说明具体缺口，已完成资料仍保留。</p><h3>重新开始与继续任务</h3><p>“继续任务”会使用已有资料补齐缺口。“重新开始”使用该任务的原图和已保存模板，新建一条任务从头调研，旧记录与报告保留；批次内重新开始的图片单独排队。正在运行、排队或等待浏览器处理的任务先停止；缺少模板时先补齐模板。</p><h3>流量词不满意怎么办？</h3><p>打开任务的“流量词”页，可“全部重新采集”，也可对单个词“换一个”或“删除”。15条流量词是完成硬性要求；反查不足时继续找同类同主题新竞品ASIN补采。整组重采攒满15条新词才替换原词表，保留已有竞品；被去掉的词加入排除名单，不再入选。新词通过来源与重复校验后才替换，失败、暂停或等待浏览器处理时保留当前词表。词库修改后，点击“按新词库生成标题”使用原模板重新生成；旧版本资料保留。运行或排队任务先停止并等待收尾。</p><h3>哪里查看报告？</h3><p>在历史任务中打开商品，切换到“联合报告”可直接阅读；点击“下载报告与图片”取得 ZIP，解压后报告中的图片可在本地一起查看。</p><h3>有来源，才填写</h3><p>占位词仅来自当次 Sif 原词和核实竞品完整原标题。竞品材质、尺寸、装框方式不会自动成为你的商品属性；不会凑流量词数量或把缺失搜索量当成 0。</p><button class="button primary" data-action="new">${icon('plus')}开始我的第一份调研</button></article>${footer()}`;}
-function render(){const content=({new:workbenchScreen,history:historyScreen,detail:detailScreen,batch:batchScreen,help:helpScreen})[state.screen]();$('#app').innerHTML=shell(content);}
+function helpScreen(){return `<div class="heading-row"><div><div class="eyebrow">A LITTLE GUIDANCE</div><h1>把资料交给我们，<span>把依据留给你。</span></h1><p class="intro">一次输入，串联相似竞品、Sif 原词与两条英文标题。</p></div></div><article class="panel help-panel"><h2>只需要准备三样资料</h2><p>一张商品参考图、实际商品类目，以及你自己的两套英文标题模板。</p><h3>一次上传多张图片</h3><p>把 JPG、PNG、WebP 图片放进 ZIP，上传后先检查清单，再统一填写类目、选择模板组并开始。每批最多100张，ZIP最大100MB，单图最大15MB、有效图片解压后合计最大300MB。图片按文件名顺序逐张处理，各自生成报告；不支持加密包、RAR或7z。混合类目请分批上传。遇人机验证或Sif登录时整个队列等待，处理后点“已处理，重启暂停任务”。单张失败后可继续处理后续图片，再单独重试失败图片。</p><h3>保存和自定义模板组名称</h3><p>填写两条模板后点“保存模板”，在“模板组名称（可自定义）”中输入自己的名字。已有组合先从下拉框选中，再点旁边的“重命名”，输入新名称并保存；这一步只改名称，不会保存输入框中的临时正文修改。</p><h3>怎么填写模板？</h3><p>保持品牌、尺寸等固定文字原样，用 <code>{主体风格}</code>、<code>{画风背景}</code>、<code>{补充图案}</code> 标记需要填词的位置。占位名称可以自己取，两套模板可以有不同结构。</p><p>默认标题一为 65–75 字符，标题二为 115–125 字符，空格和标点也计数。可在“调整字符范围”中更改。</p><h3>粘贴模板时的换行</h3><p>标题按单行生成：模板首尾换行会自动去掉，内部换行转为空格；固定文字、标点及普通空格保留。标题校验失败时仍保存已核实的竞品和流量词，可使用已有资料重新生成。</p><h3>结果为什么会暂停？</h3><p>亚马逊调研只用游客公开页面，无需账号登录。遇Amazon人机验证会先尝试点击一次明确的“我是人类”按钮，通过后继续；仍受阻则保存进度并保留页面供手动处理，无固定等待时间。Sif需要登录或验证码时，仍需在现有浏览器手动处理后点击“已处理，继续”。如果来源词不足、字符范围无法自然满足，或模板与已知实物冲突，任务会说明具体缺口，已完成资料仍保留。</p><h3>重新开始与继续任务</h3><p>“继续任务”会使用已有资料补齐缺口。“重新开始”使用该任务的原图和已保存模板，新建一条任务从头调研，旧记录与报告保留；批次内重新开始的图片单独排队。正在运行、排队或等待浏览器处理的任务先停止；缺少模板时先补齐模板。</p><h3>流量词不满意怎么办？</h3><p>打开任务的“流量词”页，可“全部重新采集”，也可对单个词“换一个”或“删除”。15条流量词是完成硬性要求；反查不足时继续找同类同主题新竞品ASIN补采。整组重采攒满15条新词才替换原词表，保留已有竞品；被去掉的词加入排除名单，不再入选。新词通过来源与重复校验后才替换，失败、暂停或等待浏览器处理时保留当前词表。词库修改后，点击“按新词库生成标题”使用原模板重新生成；旧版本资料保留。运行或排队任务先停止并等待收尾。</p><h3>哪里查看报告？</h3><p>在历史任务中打开商品，切换到“联合报告”可直接阅读；点击“下载报告与图片”取得 ZIP，解压后报告中的图片可在本地一起查看。</p><h3>有来源，才填写</h3><p>占位词仅来自当次 Sif 原词和核实竞品完整原标题。竞品材质、尺寸、装框方式不会自动成为你的商品属性；不会凑流量词数量或把缺失搜索量当成 0。</p><button class="button primary" data-action="new">${icon('plus')}开始我的第一份调研</button></article>${footer()}`;}
+function render(){const content=({new:workbenchScreen,history:historyScreen,detail:detailScreen,batch:batchScreen,help:helpScreen})[state.screen]();$('#app').innerHTML=shell(content);if(state.screen==='detail'&&state.tab==='words')queueMicrotask(()=>void ensureKeywordTranslations());}
 function navigate(screen){state.screen=screen;state.error='';history.replaceState(null,'',screen==='detail'?'?task='+state.selected:screen==='batch'?'?batch='+state.selectedBatch:location.pathname);render();window.scrollTo({top:0,behavior:'instant'});}
 function updateTask(task){const index=state.tasks.findIndex(t=>t.id===task.id);if(index<0)state.tasks.unshift(task);else state.tasks[index]=task;}
 let uploadVersion=0,uploadController;
@@ -118,11 +156,7 @@ function skippedList(batch){return batch.skipped?.length?`<details class="archiv
 function queueNotice(){
   if(state.queue.resourceError)return `<div class="notice queue-notice"><div><strong>任务已安全暂停</strong><p>${esc(state.queue.resourceError)} 已保存的资料仍保留。</p></div><div class="notice-actions"><a class="button small" href="${esc(state.health.browserUrl||'/listing-browser/')}" target="_blank" rel="noopener">检查浏览器</a>${resumeAllButton()}</div></div>`;
   if(state.queue.browserCleanupError)return `<div class="notice queue-notice"><div><strong>队列等待浏览器整理</strong><p>${esc(state.queue.browserCleanupError)} 已保存的报告和图片仍保留。</p></div><div class="notice-actions"><a class="button small" href="${esc(state.health.browserUrl||'/listing-browser/')}" target="_blank" rel="noopener">检查浏览器</a>${resumeAllButton()}</div></div>`;
-  if(state.queue.cooldown){
-    const until=state.queue.cooldown.until,minutes=Math.max(0,Math.ceil((Date.parse(until)-Date.now())/60000));
-    const time=new Date(until).toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false});
-    return `<div class="notice queue-notice"><div><strong>亚马逊验证后等待30分钟</strong><p>${state.queue.cooldown.closedAt?`已关闭调研标签页，资料已保存。预计 ${esc(time)} 自动继续，剩余约 ${minutes} 分钟。再次遇到验证会重新等待30分钟。`:'正在关闭调研标签页，成功关闭后开始计时。'}</p></div></div>`;
-  }
+
   const id=state.queue.blockedForLogin;if(!id)return '';
   const blocked=state.tasks.find(task=>task.id===id);
   const reason=blocked?.result?.status==='needs_login'?blocked.result.message:blocked?.message;
@@ -207,13 +241,17 @@ $('#app').addEventListener('click',async event=>{
       }finally{state.resumingAll=false;render();}
       return;
     }
-    if(['keyword-refresh','keyword-replace','keyword-delete'].includes(action)){
+    if(action==='unblacklist'){
+      if(!window.confirm('解除对“'+target.dataset.term+'”的全局拉黑？'))return;
+      state.blacklist=await api('keyword-blacklist',{method:'POST',body:JSON.stringify({action:'remove',term:target.dataset.term})});render();toast('已解除全局拉黑，原任务单独删除的词仍保留排除记录');return;
+    }
+    if(['keyword-refresh','keyword-replace','keyword-delete','keyword-blacklist'].includes(action)){
       const task=state.tasks.find(t=>t.id===id);if(!task||!canChangeKeywords(task))return;
       const operation=action.slice('keyword-'.length),term=target.dataset.term;
-      const question=operation==='refresh'?'重新采集全部流量词？将排除当前词及之前去掉的词，只查询 Sif，保留竞品。核验成功前保留原词表。':operation==='replace'?'为“'+term+'”重新找一个词？其他词和竞品保留，新词核验成功后再替换。':'删除流量词“'+term+'”？该词将加入排除名单，报告同步更新。';
+      const question=operation==='blacklist'?'将“'+term+'”加入全局黑名单？当前词表移除此词，以后所有任务不再采用这个完整词；包含它的更长词不受影响。':operation==='refresh'?'重新采集全部流量词？将排除当前词及之前去掉的词，只查询 Sif，保留竞品。核验成功前保留原词表。':operation==='replace'?'为“'+term+'”重新找一个词？其他词和竞品保留，新词核验成功后再替换。':'删除流量词“'+term+'”？该词将加入排除名单，报告同步更新。';
       if(!window.confirm(question+'\n词库更新后，旧标题归档，可按新词库重新生成。'))return;
       state.keywordBusyId=id;render();
-      try{updateTask(await api('tasks/'+id+'/keywords',{method:'POST',body:JSON.stringify({action:operation,...(operation==='refresh'?{}:{term})})}));state.queue=await api('queue');state.batches=await api('batches');toast(operation==='delete'?'已删除该词，报告已同步':'已排队，将按顺序查询 Sif，新词核验后替换');}
+      try{updateTask(await api('tasks/'+id+'/keywords',{method:'POST',body:JSON.stringify({action:operation,...(operation==='refresh'?{}:{term})})}));state.queue=await api('queue');state.batches=await api('batches');if(operation==='blacklist')state.blacklist=await api('keyword-blacklist');toast(operation==='blacklist'?'已拉黑该完整词，当前词表和报告已更新':operation==='delete'?'已删除该词，报告已同步':'已排队，将按顺序查询 Sif，新词核验后替换');}
       finally{state.keywordBusyId=null;render();}
       return;
     }
@@ -254,6 +292,7 @@ $('#app').addEventListener('click',async event=>{
     }
     if(action==='open'){state.selected=id;state.tab='titles';return navigate('detail');}
     if(action==='tab'){state.tab=tab;return render();}
+    if(action==='retry-keyword-translations'){target.disabled=true;void ensureKeywordTranslations(id,{retry:true});return render();}
     if(action==='filter'){state.filter=value;return render();}
     if(action==='edit'){uploadVersion++;uploadController?.abort();const task=state.tasks.find(t=>t.id===id);Object.assign(state.form,structuredClone(task.input),{batchId:'',batchPreview:null,archiveUploading:false,reuseId:id,presetId:'',presetCategory:'',imageData:'',imagePreview:asset(task,task.previewFile),imageName:task.name});return navigate('new');}
     if(action==='copy-title')return copy(state.tasks.find(t=>t.id===state.selected).result.titles[Number(index)].text);
@@ -310,7 +349,8 @@ $('#app').addEventListener('submit',async event=>{
 });
 async function poll(){
   try{
-    const [tasks,batches,queue]=await Promise.all([api('tasks'),api('batches'),api('queue')]);
+    const [fetchedTasks,batches,queue]=await Promise.all([api('tasks'),api('batches'),api('queue')]);
+    const tasks=preserveDisplayedKeywordMeanings(fetchedTasks,state.tasks);
     const before=JSON.stringify([state.tasks,state.batches,state.queue]);state.tasks=tasks;state.batches=batches;state.queue=queue;
     if(JSON.stringify([tasks,batches,queue])!==before){
       if(['detail','batch'].includes(state.screen)){const open=$('.event-log')?.open;render();if(open&&$('.event-log'))$('.event-log').open=true;}
@@ -320,6 +360,6 @@ async function poll(){
     }
   }catch{}finally{setTimeout(poll,state.tasks.some(t=>['running','queued'].includes(t.state))?2500:10000);}
 }
-try{const boot=await api('bootstrap');state.tasks=boot.tasks;state.batches=boot.batches||[];state.queue=boot.queue||{};if(state.form.batchId){const draft=state.batches.find(b=>b.id===state.form.batchId&&b.state==='draft');state.form.batchPreview=draft||null;if(!draft)state.form.batchId='';}state.templates=boot.templates||[];state.health=boot.health;if(!state.templates.some(p=>p.id===state.form.presetId))state.form.presetId="";const selected=new URLSearchParams(location.search).get('task');if(selected&&state.tasks.some(t=>t.id===selected)){state.selected=selected;state.screen='detail';}const batchId=new URLSearchParams(location.search).get('batch');if(batchId&&state.batches.some(b=>b.id===batchId)){state.selectedBatch=batchId;state.screen='batch';}render();void poll();}catch(error){$('#app').innerHTML=`<div class="boot"><img src="./favicon.svg" width="44" height="44" alt=""><p>工作台暂时未连接：${esc(error.message)}</p><button class="button" onclick="location.reload()">重新连接</button></div>`;}
+try{const boot=await api('bootstrap');state.tasks=boot.tasks;state.batches=boot.batches||[];state.queue=boot.queue||{};if(state.form.batchId){const draft=state.batches.find(b=>b.id===state.form.batchId&&b.state==='draft');state.form.batchPreview=draft||null;if(!draft)state.form.batchId='';}state.templates=boot.templates||[];state.blacklist=await api('keyword-blacklist');state.health=boot.health;if(!state.templates.some(p=>p.id===state.form.presetId))state.form.presetId="";const selected=new URLSearchParams(location.search).get('task');if(selected&&state.tasks.some(t=>t.id===selected)){state.selected=selected;state.screen='detail';}const batchId=new URLSearchParams(location.search).get('batch');if(batchId&&state.batches.some(b=>b.id===batchId)){state.selectedBatch=batchId;state.screen='batch';}render();void poll();}catch(error){$('#app').innerHTML=`<div class="boot"><img src="./favicon.svg" width="44" height="44" alt=""><p>工作台暂时未连接：${esc(error.message)}</p><button class="button" onclick="location.reload()">重新连接</button></div>`;}
 
 setInterval(()=>{if(state.queue.cooldown){const notice=$('.queue-notice');if(notice)notice.outerHTML=queueNotice();}},60000);
