@@ -1,59 +1,79 @@
-# 服务器项目代码
+# 服务器网站使用说明
 
-## 轻单（已下线，源码归档）
+这里汇总各网站的访问入口、常用操作和新服务器部署说明。把下面地址里的 `服务器IP` 换成部署机器的地址。如果管理员提供了域名，直接使用分发的网址。
 
-轻单已于2026-11-12从当前服务器下线，以下源码仅供归档，不默认重新部署。`qingdan/` 是任务清单，包含网页、Node.js/SQLite 后端、自动化测试和 Nginx/systemd 部署配置。
+## 打开网站
 
-```sh
-cd qingdan
-npm test
-DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
-```
+| 网站 | 当前部署地址格式 | 用途 |
+| --- | --- | --- |
+| Listing Studio | `http://服务器IP:8796/` | 商品图调研、英文标题、批次 Excel |
+| 任务清单 | `https://服务器IP/tasks/` | 在手机和电脑上共用待办清单 |
+| 闲鱼监控 | `http://服务器IP:8798/` | 按条件监控商品，用 AI 分析图片和描述 |
+| ClawChat | `http://服务器IP:8795/` | 多个 AI 同群协作 |
+| Buddy2api | `https://服务器IP/` | 管理 WorkBuddy 模型接入 |
+| WorkBuddy Daily | `http://服务器IP:8600/` | 管理账号登录、运行和查看结果 |
+| B 站抽奖助手 | `http://服务器IP:8790/` | 查看动态、运行抽奖任务和统计中奖 |
+| Octop | `http://服务器IP:13947/` | 使用已配置的 AI 模型和专家 |
 
-需要 Node.js 24，无生产 npm 依赖。详细说明见 `qingdan/README.md`。
-
-## 8790 抽奖助手修复补丁
-
-`bili-8790/` 保存旧转发不可见时跳过清理、分组失败不阻断后续互动及对应回归测试。完整引擎仍属于上游项目，原部署使用 LotteryAutoScript v2.11.3（GPL-3.0-or-later）。本目录仅包含修复补丁和隔离测试，见其说明。
-
-此仓库不包含服务器密码、账号 Cookie、私钥、运行数据库、动态台账、备份或日志。部署时使用各服务器自身配置。
-
-## ClawChat
-
-`clawchat/` 是当前群聊网站 ClawChat 0.7.73 的源码快照，包含现有服务器适配、前后端、测试和各平台构建文件。Linux 部署、数据目录及多项目仓库下的升级边界见 `clawchat/DEPLOYMENT.md`。聊天记录、上传附件、账号密钥及运行数据不包含在内。
+页面提示登录时，使用管理员配置的访问方式。闲鱼监控使用应用内管理员登录。
 
 ## Listing Studio
 
-`listing-studio/` 是商品图片调研与英文标题工作台，包含网站源码、自动化测试、专用浏览器启动脚本及 Nginx/systemd 资源保护配置。支持全局流量词黑名单、中文释义显示且复制保留英文原词、仅Sif当前反查、图片与 ZIP 批量调研、批次 Excel 汇总、两套模板、报告下载、历史删除、任务重新开始、一键恢复暂停任务和最多2个浏览器标签页。Amazon验证后的固定30分钟等待已取消，简单“我是人类”控件按用户授权尝试一次，未通过则保留页面暂停。运行依赖与部署步骤见 [Listing Studio 说明](listing-studio/README.md)。
+1. 在工作台上传一张 JPG、PNG 或 WebP，也可以上传 ZIP。上传 ZIP 后，先核对预览里的有效图片和处理顺序。
+2. 选择商品类目，填写两条英文标题模板和字符范围。常用模板可以保存为一组，下次直接选用。同一 ZIP 批次使用一组类目和模板。
+3. 提交调研。批量图片按文件名顺序逐张处理，Sif 使用当前反查。如果队列提示等待浏览器处理，打开浏览器完成提示中的登录或验证，再点继续。
+4. 从「历史任务」打开详情，可查看两条英文标题、Sif 原始流量词、竞品原标题和联合报告。流量词旁显示中文释义，复制得到英文原词。拉黑按完整词匹配，包含该词的更长短语仍可使用。
+5. ZIP 批次中保留的图片全部完成后，系统会自动生成 Excel。在「历史任务」的「批量调研」里打开该批次，点「下载 Excel 汇总」。
 
-任务记录、商品图片、报告、模板库、Cookie、浏览器 profile、账号凭据与私人访问路径不包含在内。
+Excel 每张图片一行。
 
-## 任务清单与闲鱼监控
-
-[任务清单](task-list/README.md) 提供服务器端数据存储和 IP 路由模板。[闲鱼监控](ai-goofish-monitor/README.md) 提供 Docker 部署配置与 Buddy2api 转发模板。网页入口见 [site-access](site-access/README.md)。
-
-## 新服务器联合部署
-
-从 GitHub 拉取并部署 ClawChat、远程浏览器和 Listing，统一入口见 [deploy/README.md](deploy/README.md)。其中包含目录、依赖、技能安装、服务与反代顺序、账号登录和实际验收要求；[deploy/AGENT-HANDOFF.txt](deploy/AGENT-HANDOFF.txt) 可直接交给新服务器上的 AI 执行。
-
-## 其余业务程序
-
-| 目录 | 内容 |
+| 列 | 内容 |
 | --- | --- |
-| [workbuddy/](workbuddy/) | WorkBuddy Daily v3.39、控制台、登录/运行脚本和定时器模板 |
-| [bililottery/](bililottery/) | 当前 B站抽奖 Web 完整部署源码、引擎、认证代理和定时启动脚本 |
-| [lottery/](lottery/) | 原独立 LotteryAutoScript v2.11.3 和中奖检查服务 |
-| [octop/](octop/) | Octop 与4个配套组件的安装版源码/网页资源、许可证和依赖版本 |
-| [server-runtime/](server-runtime/) | Nginx、Docker 等基础软件的版本与安装边界 |
-| [1panel/](1panel/) | 1Panel 社区版 v2.4.2 官方安装校验信息、HTTPS 配置步骤和资源预算 |
+| A | 内嵌照片 |
+| B | 原图片名称 |
+| C、D | 两条英文标题 |
+| E | 英文流量词原文 |
+| F 起 | 每列一个竞品原标题 |
 
-小内存机器上的 ClawChat、Octop、后台任务调度、zswap 及 Docker 按需启动配置见 [服务器运行优化](server-runtime/optimization/README.md)。
+查看 A 列照片需要支持「置于单元格中」的 Excel。批次详情仍可打开每张图的独立报告。[Listing Studio 运行和部署说明](listing-studio/README.md)
 
-完整目录及新机器部署入口见 [deploy/ALL-PROGRAMS.md](deploy/ALL-PROGRAMS.md)。第三方代码保留各自版权和许可证；所有新收录目录均不包含现有账号凭据、Cookie、数据库、运行日志或个人记忆。盘搜 Pansou 已删除，不收录或恢复。
+## 任务清单
 
-## WorkBuddy 模型网关与统一入口
+1. 填写任务名称，按需选择截止日期、优先级和备注，点「添加任务」。
+2. 勾选任务即可标为完成。可以编辑、删除或搜索，也可以在「全部」「待完成」「已完成」之间切换。
+3. 手机和电脑打开同一入口时使用同一份清单。任务默认保存在服务器的 `task-list/data/tasks.json`，旧版浏览器里的任务需手动迁移。
 
-- [buddy2api/](buddy2api/)：Buddy2api v2.2.24完整上游源码、MIT许可证、独立服务、本人账号访问令牌同步及IP HTTPS部署模板。
-- [site-access/](site-access/)：现有业务网页的访问密码与本机后端代理源码，私有口令和状态不上传。
+当前部署的 `/tasks/` 入口免登录，能访问该网址的人可以查看和编辑清单。[任务清单部署说明](task-list/README.md)
 
-DeepSeek Harness与轻单已从当前服务器运行入口移除；历史源码如仍在仓库中，只作归档。
+## 闲鱼监控
+
+1. 打开网页，用应用管理员账号登录。
+2. 在「闲鱼账号管理」导入通过项目浏览器扩展导出的闲鱼登录态。
+3. 在「任务管理」新建监控，填写关键词、价格范围和筛选条件，保存后启动。
+4. 在「结果查看」查看命中的商品和 AI 分析。当前部署通过 Buddy2api 调用 `auto` 模型。
+
+[闲鱼监控部署与模型配置](ai-goofish-monitor/README.md)
+
+## ClawChat
+
+1. 打开聊天网站，新建群聊，选好项目文件夹和要参与的 AI 成员。
+2. 在群里用 `@成员名` 指派任务，也可以拖入或粘贴图片。发送前可在输入框查看消息会交给谁。
+3. 点击成员头像可私聊。需要切换模型或登录 AI 账号时，打开「设置」里的「程序与模型」。
+
+[ClawChat 详细用法](clawchat/README.md) · [服务器部署](clawchat/DEPLOYMENT.md)
+
+## 模型与其他工具
+
+- **Buddy2api**。在管理页授权 WorkBuddy 账号，在「API Keys」创建客户端密钥。同服务器的程序使用 `http://127.0.0.1:18878/v1`，通过 `/v1/models` 核对模型 ID，可先用 `auto` 验证连接。[模型网关接入说明](buddy2api/README.md)
+- **WorkBuddy Daily**。进入面板，按账号类型完成登录，再运行任务并查看结果。自动运行计划由管理员配置。[控制台说明](workbuddy/README.md)
+- **B 站抽奖助手**。登录账号后在首页查看任务和近七天中奖统计。使用「清理动态」时，先读取清单并核对账号与范围。[抽奖助手操作说明](bililottery/README.md)
+- **Octop**。打开网页后使用已配置的模型和专家，首次部署需配置运行账号及模型。[Octop 安装说明](octop/README.md)
+
+## 新服务器部署与源码归档
+
+- [ClawChat、Listing Studio 和远程浏览器联合部署](deploy/README.md)
+- [统一网页入口与访问密码设置](site-access/README.md)
+- [全部程序目录和部署入口](deploy/ALL-PROGRAMS.md)
+- [1Panel 管理面板](1panel/README.md)和[服务器资源优化](server-runtime/optimization/README.md)
+
+账号凭据、浏览器登录态和运行数据由部署机器单独保存。轻单和早期抽奖补丁的源码保留在归档目录。[轻单归档](qingdan/README.md) · [早期抽奖补丁](bili-8790/README.md)
