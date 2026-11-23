@@ -1,0 +1,14 @@
+{
+  "name": "bujiaban-task-list",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js",
+    "check": "node --check server.js && node --check lib/store.js && node --check public/app.js"
+  }
+}

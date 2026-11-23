@@ -2,9 +2,10 @@ import fs from 'node:fs/promises';
 import {KeywordBlacklist} from './keyword-blacklist.mjs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { EventEmitter } from 'node:events';
 
-export class TaskStore {
-  constructor(root){this.root=path.resolve(root);this.tasks=new Map();this.locks=new Map();this.blacklist=new KeywordBlacklist(this.root);}
+export class TaskStore extends EventEmitter {
+  constructor(root){super();this.root=path.resolve(root);this.tasks=new Map();this.locks=new Map();this.blacklist=new KeywordBlacklist(this.root);}
   async init(){
     await fs.mkdir(this.root,{recursive:true,mode:0o700});
     await this.blacklist.init();
@@ -35,7 +36,7 @@ export class TaskStore {
     const operation=(this.locks.get(id)||Promise.resolve()).catch(()=>{}).then(async()=>{
       const current=this.tasks.get(id);if(!current||current.deletedAt&&!includeDeleted)throw Object.assign(new Error('任务不存在或已删除'),{status:404});
       const next={...current,...(typeof patch==='function'?patch(structuredClone(current)):patch),updatedAt:new Date().toISOString()};
-      await this.write(next);this.tasks.set(id,next);return structuredClone(next);
+      await this.write(next);this.tasks.set(id,next);this.emit('change',next,current);return structuredClone(next);
     });
     this.locks.set(id,operation);return operation;
   }

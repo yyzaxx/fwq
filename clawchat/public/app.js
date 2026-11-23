@@ -303,6 +303,20 @@ function openFileRef(ref) {
   const url = viewUrl(conv.roomId, file, near);
   const name = file.split('/').pop();
   if (VIEW_IMAGE_RE.test(file)) return openLightbox(url, { name, check: true });
+  // AI 做的网页：先要一张临时通行证（只认这个网页所在的文件夹），新开一页在沙盒里看
+  if (/\.html?$/i.test(file)) {
+    const w = window.open('', '_blank');
+    api('POST', `/api/rooms/${conv.roomId}/site`, { path: file, near })
+      .then(({ url: page }) => {
+        if (w) w.location.href = page;
+        else location.href = page;
+      })
+      .catch((err) => {
+        w?.close();
+        toast(err.message, 5000);
+      });
+    return;
+  }
   if (VIEW_MEDIA_RE.test(file)) {
     // 新页要在点的这一下就开（晚了会被浏览器当成弹窗拦掉），先确认能打开再跳过去，打不开就关掉、说原因
     const w = window.open('', '_blank');
@@ -317,7 +331,7 @@ function openFileRef(ref) {
     });
     return;
   }
-  toast(tr('这个文件在电脑上，手机上只能看图片、PDF 和音视频'), 5000);
+  toast(tr('这个文件在电脑上，手机上只能看图片、网页、PDF 和音视频'), 5000);
 }
 
 // AI 回复里提到的图片：手机上在气泡下面直接排一行小图（最多 4 张），不用去点路径。过程里的路径不加
@@ -1240,7 +1254,9 @@ function renderEngines() {
     if (CAN_INSTALL.includes(key) && !installed) action = installButtonHtml('secondary', key);
     else if (BYOK[key] && !installed) action = installButtonHtml('secondary', 'claude');
     else if (loggedOut && LOGIN_NAMES[key] && isLocalHost()) action = `<button class="secondary engine-login" data-login="${key}"${busyLogin ? ' disabled' : ''}>${busyLogin ? tr('等待登录…') : tr('登录')}</button>`;
-    else if (installed && !loggedOut && !BYOK[key] && key !== 'gemini' && key !== 'api') action = `<button class="secondary engine-update" data-engine="${key}">${tr('更新')}</button>`;
+    else if (installed && !loggedOut && !BYOK[key] && key !== 'api') action = `<button class="secondary engine-update" data-engine="${key}">${tr('更新')}</button>`;
+    // DeepSeek、GLM、API 借 Claude Code 干活：它们这一行的「更新」更新的就是 Claude Code
+    else if ((BYOK[key] || key === 'api') && S.engines.claude?.path) action = `<button class="secondary engine-update" data-engine="claude" title="${esc(tr('{name} 借 Claude Code 干活，更新的就是 Claude Code', { name }))}">${tr('更新')}</button>`;
     // 浏览器没自动打开时：官方命令打印出来的登录网址（有验证码的话一起显示）
     const extra = link && loggedOut
       ? `<small class="engine-login-hint">${link.code ? `${tr('验证码 {code} · ', { code: esc(link.code) })}` : ''}<a href="${esc(link.url)}" target="_blank" rel="noopener">${tr('浏览器没打开？点这里')}</a></small>`
@@ -2736,6 +2752,35 @@ function mdToPlain(text) {
     .replace(/(^|[^\w*])\*([^*\n]+)\*(?!\w)/g, '$1$2')
     .replace(/~~([^~\n]+)~~/g, '$1');
   return s.replace(/(\d+)/g, (_, i) => codes[i]).replace(/(\d+)/g, (_, i) => blocks[i]);
+}
+
+// 把选中的那段做成干净的 HTML：去掉按钮、头像、图片，去掉所有 style / class / data-*；
+// 只选了单元格、表格行的一部分时补上外面的 <table>，只选了加粗、代码里的几个字时补上外面的格式
+const COPY_WRAP = new Set(['UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'DEL', 'S', 'CODE', 'PRE', 'A', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE']);
+function cleanCopyHtml(range) {
+  const box = document.createElement('div');
+  box.append(range.cloneContents());
+  box.querySelectorAll('button, .avatar, img, .ref-thumbs, svg, script, style').forEach((el) => el.remove());
+  for (const el of box.querySelectorAll('*')) {
+    for (const a of [...el.attributes]) if (!(el.tagName === 'A' && a.name === 'href') && !(el.tagName === 'OL' && a.name === 'start') && !['colspan', 'rowspan'].includes(a.name)) el.removeAttribute(a.name);
+  }
+  let html = box.innerHTML;
+  if (!html.trim()) return '';
+  // 选到了表格里：片段里只剩 <tr>/<td> 时套回表格，粘过去还是表格
+  if (box.querySelector(':scope > tr, :scope > tbody, :scope > thead')) html = `<table>${html}</table>`;
+  else if (box.querySelector(':scope > td, :scope > th')) html = `<table><tr>${html}</tr></table>`;
+  // 选区整个在加粗、代码这类格式里面：cloneContents 拿不到外面那层，补上
+  const start = range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
+  for (let el = start; el && !el.classList?.contains('bubble'); el = el.parentElement) {
+    if (COPY_WRAP.has(el.tagName)) {
+      const t = el.tagName.toLowerCase();
+      const href = t === 'a' && el.getAttribute('href') ? ` href="${esc(el.getAttribute('href'))}"` : '';
+      // 有序列表从 5 开始的，粘过去也从 5 开始
+      const start = t === 'ol' && el.getAttribute('start') ? ` start="${esc(el.getAttribute('start'))}"` : '';
+      html = `<${t}${href}${start}>${html}</${t}>`;
+    }
+  }
+  return html;
 }
 
 // 复制一条消息：带格式的那份（粘到备忘录、飞书、Word 里是加粗、列表的样子）+ 去掉记号的纯文字
@@ -5068,13 +5113,20 @@ async function submitCustomModel(e) {
 
 // 一键更新 Claude Code / Codex：新模型常常要新版本才看得到
 async function updateEngine(engine, btn) {
-  const name = { codex: 'Codex', grok: 'Grok Build', cursor: 'Cursor CLI' }[engine] || 'Claude Code';
-  btn.disabled = true;
-  btn.textContent = tr('更新中…');
+  const name = { codex: 'Codex', grok: 'Grok Build', cursor: 'Cursor CLI', gemini: 'Gemini' }[engine] || 'Claude Code';
+  // 同一个程序的按钮一起灰掉（Claude Code 那四个）
+  for (const b of document.querySelectorAll(`.engine-update[data-engine="${engine}"]`)) {
+    b.disabled = true;
+    b.textContent = tr('更新中…');
+  }
   try {
     const res = await api('POST', '/api/engines/update', { engine });
     S.engines = res.engines || S.engines;
-    toast(res.ok ? tr('{name} 已是最新：{version}', { name, version: S.engines[engine]?.version || '' }) : tr('{name} 更新失败：{error}', { name, error: res.output }), 5000);
+    // Gemini 一次更新两个程序：成功时也把各自的结果说出来
+    const summary = engine === 'gemini' ? String(res.output || '').split('\n').filter((l) => /^(Antigravity CLI|Gemini CLI)：/.test(l)).join('；') : '';
+    toast(res.ok
+      ? summary || tr('{name} 已是最新：{version}', { name, version: S.engines[engine]?.version || '' })
+      : tr('{name} 更新失败：{error}', { name, error: res.output }), 6000);
   } catch (err) {
     toast(err.message);
   }
@@ -6999,6 +7051,21 @@ function bind() {
     const [a] = S.attachments.splice(Number(b.dataset.i), 1);
     if (a) URL.revokeObjectURL(a.url);
     renderAttachments();
+  });
+  // 在聊天里选中一段文字按 ⌘C：浏览器会把深色界面的字色、底色、字号一起写进剪贴板，
+  // 粘到飞书、Word 这类文档里就带着一块灰底。这里自己写剪贴板：表格、加粗、列表这些结构留着，样式一律去掉
+  document.addEventListener('copy', (e) => {
+    const sel = getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount || !e.clipboardData) return;
+    const range = sel.getRangeAt(0);
+    const at = (n) => (n.nodeType === 1 ? n : n.parentElement);
+    const scope = $('#messages');
+    if (!scope || !scope.contains(at(range.startContainer)) || !scope.contains(at(range.endContainer))) return;
+    const html = cleanCopyHtml(range);
+    if (!html) return;
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', sel.toString());
+    e.clipboardData.setData('text/html', html);
   });
   const input = $('#input');
   // 粘贴的文字里有 @成员：换成带头像的标签再放进去（输入框和改消息的框都一样）

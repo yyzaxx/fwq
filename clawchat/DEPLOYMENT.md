@@ -1,6 +1,6 @@
 # 当前服务器版本的源码与部署
 
-本目录保存 ClawChat 0.7.67 当前工作区的源码快照。上游为 https://github.com/Lenka0605/ClawChat ，基准提交 `7118812`。保留原有 README、开发说明、网页、库、测试，以及 macOS / Windows / Android 源文件和构建脚本。
+本目录保存 ClawChat 0.7.73 当前工作区的源码快照。上游为 https://github.com/Lenka0605/ClawChat ，基准提交 `e75d243`。保留原有 README、开发说明、网页、库、测试，以及 macOS / Windows / Android 源文件和构建脚本。
 
 当前服务器对 `lib/agents.js` 有一处适配：Claude 子进程环境带 `IS_SANDBOX=1`，以配合现有运行方式。本次包含该工作区改动，不导入原 Git 历史。
 
@@ -66,4 +66,4 @@ sudo systemctl reload nginx
 
 本次仅上传源码及示例配置，未重启或修改提供当前群聊的服务。
 
-本次完整测试、独立复核及已知超时差异见 [VERIFICATION.md](VERIFICATION.md)。该测试在不同运行中结果不一致，原因未确认；不要将此源码快照理解为各平台全部验证通过的发行包。
+0.7.67 快照的历史测试记录见 [VERIFICATION.md](VERIFICATION.md)。

@@ -1,7 +1,7 @@
 'use strict';
 // Optional per-site access control. Upstreams must listen only on loopback.
 const http=require('node:http'),crypto=require('node:crypto'),fs=require('node:fs');
-const sites=[['clawchat',8795,18795,'ClawChat'],['listing',8796,18796,'Listing Studio'],['workbuddy',8600,18600,'WorkBuddy'],['octop',13947,23947,'Octop'],['bili',8790,8787,'BiliLottery']];
+const sites=[['clawchat',8795,18795,'ClawChat'],['listing',8796,18796,'Listing Studio'],['workbuddy',8600,18600,'WorkBuddy'],['octop',13947,23947,'Octop'],['bili',8790,8787,'BiliLottery'],['goofish',8798,8000,'闲鱼监控'],['tasks',8799,7380,'任务清单']];
 const octopKey=fs.readFileSync('/opt/site-access/octop.key','utf8').trim();
 const file=process.env.STATE_FILE||'/opt/site-access/state.json';
 let state=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};
@@ -18,10 +18,54 @@ const page=(title,body)=>'<!doctype html><html lang="zh-CN"><meta charset="utf-8
 const injection=id=>'<script src="/_access/ui.js" data-site="'+id+'" defer></script>';
 async function body(req){let n=0,chunks=[];for await(const c of req){n+=c.length;if(n>8192)throw Error('请求过大');chunks.push(c)}return JSON.parse(Buffer.concat(chunks).toString()||'{}')}
 function originOK(req){return req.headers.origin==='http://'+req.headers.host && !['cross-site'].includes(req.headers['sec-fetch-site'])}
+// 闲鱼应用的登录接口校验账号密码，网关签发会话，用它保护实际业务接口。
+const goofishSession = 'goofish-app';
+const goofishPages = new Set(['/', '/login', '/dashboard', '/tasks', '/accounts', '/results', '/logs', '/settings']);
+function goofishPublicPage(path, method) {
+ return ['GET','HEAD'].includes(method) && (goofishPages.has(path) || /^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css|svg|png|webp|woff2?)$/.test(path) || path==='/favicon.ico');
+}
+async function goofishLogin(req,res,upstream) {
+ if(!originOK(req))return reply(res,403,{error:'来源校验失败'});
+ const key=goofishSession+':'+req.socket.remoteAddress;
+ const failure=failures.get(key);
+ if(failure?.count>=10 && failure.until>Date.now())return reply(res,429,{error:'尝试过多，请十分钟后重试'});
+ const credentials=await body(req);
+ if(typeof credentials?.username!=='string'||typeof credentials?.password!=='string'||credentials.username.length>256||credentials.password.length>256)return reply(res,400,{error:'登录参数无效'});
+ const payload=JSON.stringify({username:credentials.username,password:credentials.password});
+ const response=await fetch('http://127.0.0.1:'+upstream+'/auth/status',{
+  method:'POST',headers:{'Content-Type':'application/json'},body:payload,redirect:'error',signal:AbortSignal.timeout(5000)
+ });
+ if(response.status===401){
+  failures.set(key,{count:failure?.until>Date.now()?failure.count+1:1,until:Date.now()+600000});
+  return reply(res,401,{detail:'认证失败'});
+ }
+ if(!response.ok)return reply(res,502,{error:'应用登录暂时不可用'});
+ const result=await response.json();
+ if(result.authenticated!==true)return reply(res,502,{error:'应用登录暂时不可用'});
+ failures.delete(key);
+ issue(req,res,goofishSession);
+ return reply(res,200,{authenticated:true,username:credentials.username});
+}
+function goofishAuthScript(signedIn) {
+ // 前端原有登录标记只用于界面。页面重载时，以网关会话为准。
+ return '<script>(function(){const remove=Storage.prototype.removeItem;if(!'+signedIn+'){remove.call(localStorage,"auth_logged_in");remove.call(localStorage,"auth_username")}Storage.prototype.removeItem=function(key){remove.apply(this,arguments);if(this===localStorage&&key==="auth_logged_in"){void fetch("/auth/logout",{method:"POST",keepalive:true}).catch(()=>{})}}})()</script>';
+}
 for(const [id,port,upstream,name] of sites){
  const server=http.createServer(async(req,res)=>{
   try{
    const path=req.url.split('?')[0];
+   if(id==='goofish'){
+    if(path.startsWith('/_access/'))return reply(res,404,{error:'此站点请使用应用登录'});
+    if(path==='/auth/status'&&req.method==='POST')return await goofishLogin(req,res,upstream);
+    if(path==='/auth/logout'&&req.method==='POST'){
+     if(!originOK(req))return reply(res,403,{error:'来源校验失败'});
+     sessions.delete(cookie(req,'site_access_'+goofishSession));
+     res.setHeader('Set-Cookie','site_access_'+goofishSession+'=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+     return reply(res,200,{ok:true});
+    }
+    if(!session(req,goofishSession)&&!goofishPublicPage(path,req.method))return reply(res,401,{detail:'请先登录闲鱼监控'});
+    if(!['GET','HEAD'].includes(req.method)&&!originOK(req))return reply(res,403,{error:'来源校验失败'});
+   }
    // Listing's legacy entry is also reachable through ClawChat; enforce both gates.
    if(id==='clawchat'&&(path.startsWith('/listing-app/')||path.startsWith('/listing-browser/'))&&!authorized(req,'listing'))return reply(res,401,{error:'请先在 Listing Studio 登录',login:'http://'+req.headers.host.replace(/:\d+$/,':8796')+'/_access/settings'});
    if(path==='/_access/login'&&req.method==='POST'){
@@ -32,7 +76,7 @@ for(const [id,port,upstream,name] of sites){
     if(typeof b.password!=='string'||b.password.length>256||!check(b.password,state[id])){failures.set(key,{count:f&&f.until>Date.now()?f.count+1:1,until:Date.now()+600000});return reply(res,401,{error:'密码错误'})}
     failures.delete(key);issue(req,res,id);return reply(res,200,{ok:true});
    }
-   if(!authorized(req,id)){
+   if(id!=='goofish'&&!authorized(req,id)){
     if(req.method!=='GET')return reply(res,401,{error:'请先登录',login:'/_access/settings'});
     return reply(res,200,page(name+' · 登录','<h1>'+name+'</h1><p>此网站已启用访问密码。</p><form id="form"><input id="pwd" type="password" autocomplete="current-password" required placeholder="访问密码"><button>进入网站</button></form><p id="msg"></p><script>form.onsubmit=async e=>{e.preventDefault();try{let r=await fetch("/_access/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pwd.value})});let d=await r.json();if(!r.ok)throw Error(d.error);location.href="/"}catch(e){msg.textContent=e.message}}</script>'),'text/html; charset=utf-8');
    }
@@ -47,6 +91,7 @@ for(const [id,port,upstream,name] of sites){
     if(b.disable===true)delete state[id];else{const salt=crypto.randomBytes(16).toString('hex');state[id]={salt,hash:hash(b.password,salt),version:crypto.randomBytes(16).toString('hex')}}
     save();for(const [key,value]of sessions)if(value.id===id)sessions.delete(key);issue(req,res,id);return reply(res,200,{ok:true});
    }
+   if(id==='tasks'&&!['GET','HEAD'].includes(req.method)&&!originOK(req))return reply(res,403,{error:'来源校验失败'});
    if(path==='/_access/ui.js'&&req.method==='GET')return reply(res,200,fs.readFileSync('/opt/site-access/settings-ui.js','utf8'),'application/javascript; charset=utf-8');
    if(path.startsWith('/_access/'))return reply(res,404,{error:'Not found'});
    const headers={...req.headers};delete headers['accept-encoding'];delete headers['x-site-access-key'];
@@ -56,7 +101,10 @@ for(const [id,port,upstream,name] of sites){
     const h={...r.headers};const html=(h['content-type']||'').includes('text/html')&&!h['content-encoding']&&req.method!=='HEAD';
     if(html){delete h['content-length'];delete h.etag;delete h['content-md5'];h['cache-control']='no-store'}
     res.writeHead(r.statusCode,h);
-    if(html&&id==='octop'){
+    if(html&&id==='goofish'){
+     r.pipe(res,{end:false});
+     r.on('end',()=>res.end(goofishAuthScript(!!session(req,goofishSession))));
+    }else if(html&&id==='octop'){
      const chunks=[];r.on('data',c=>chunks.push(c));r.on('end',()=>{
       let doc=Buffer.concat(chunks).toString('utf8').replace(/type="module"/g,'type="site-access-module"');
       doc+='<script>(async()=>{try{const r=await fetch("/api/auth/site-access-session",{cache:"no-store"});if(!r.ok)throw Error("登录初始化失败");const d=await r.json();localStorage.removeItem("auth_token");sessionStorage.setItem("auth_token",d.access_token);if(location.pathname==="/login")history.replaceState(null,"","/");for(const old of document.querySelectorAll(\'script[type="site-access-module"]\')){const s=document.createElement("script");for(const a of old.attributes)s.setAttribute(a.name,a.value);s.type="module";s.textContent=old.textContent;old.replaceWith(s)}}catch(e){document.body.insertAdjacentHTML("afterbegin","<p>登录初始化失败，请刷新页面重试。</p>")}})()</script>';
@@ -68,7 +116,8 @@ for(const [id,port,upstream,name] of sites){
  });
  server.requestTimeout=0;
  server.on('upgrade',(req,socket,head)=>{
-  if((id==='clawchat'&&(req.url.startsWith('/listing-app/')||req.url.startsWith('/listing-browser/'))&&!authorized(req,'listing'))||!authorized(req,id)){socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');return}
+  if(id==='goofish'&&!session(req,goofishSession)){socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');return}
+  if((id==='clawchat'&&(req.url.startsWith('/listing-app/')||req.url.startsWith('/listing-browser/'))&&!authorized(req,'listing'))||(id!=='goofish'&&!authorized(req,id))){socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');return}
   if(req.headers.origin&&req.headers.origin!=='http://'+req.headers.host){socket.end('HTTP/1.1 403 Forbidden\r\n\r\n');return}
   const up=http.request({host:'127.0.0.1',port:upstream,path:req.url,headers:req.headers});
   up.on('upgrade',(r,s,h)=>{socket.write('HTTP/1.1 101 Switching Protocols\r\n'+Object.entries(r.headers).map(([k,v])=>k+': '+v).join('\r\n')+'\r\n\r\n');if(head.length)s.write(head);if(h.length)socket.write(h);socket.pipe(s).pipe(socket);socket.on('error',()=>s.destroy());s.on('error',()=>socket.destroy())});

@@ -3,3 +3,6 @@
 
 # 上游快照保留原始CRLF、Markdown硬换行和原始空行；自有源码仍使用常规检查。
 buddy2api/source/** whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
+
+# 保留随包分发的 XlsxWriter 元数据原样。
+listing-studio/web/scripts/vendor/**/METADATA whitespace=-blank-at-eof

@@ -29,10 +29,15 @@ export async function prepareArchive(filename,directory){
   return {files,skipped};
 }
 
+export function visibleBatchFiles(batch,tasks){
+  return batch.files.map((file,i)=>({...file,taskId:batch.taskIds?.[i]||null}))
+    .filter(file=>!file.taskId||!tasks.isDeleted(file.taskId));
+}
+
 export class BatchManager {
   constructor(tasks,batches,runner){this.tasks=tasks;this.batches=batches;this.runner=runner;this.locks=new Map();}
   view(batch){
-    const files=batch.files.map((file,i)=>({...file,taskId:batch.taskIds?.[i]||null})).filter(file=>!file.taskId||!this.tasks.isDeleted(file.taskId));
+    const files=visibleBatchFiles(batch,this.tasks);
     const taskIds=files.map(file=>file.taskId).filter(Boolean),tasks=taskIds.map(id=>this.tasks.get(id)).filter(Boolean);
     const counts={total:files.length,completed:0,queued:0,running:0,waiting:0,stopped:0,finished:0};
     for(const task of tasks){

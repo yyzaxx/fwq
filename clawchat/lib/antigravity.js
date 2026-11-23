@@ -19,20 +19,40 @@ export function agyVersionOk(version) {
   return true;
 }
 // 最近一次检测到的 agy 版本（detectGemini 记下）：太旧时每轮都直接报错，提示升级
-export const agyState = { version: null };
+// models：这个账号实际能用的模型（detectGemini 跑 agy models 拿到的）；拿不到时为 null，用下面内置的那几个
+export const agyState = { version: null, models: null };
+// 解析 agy models 的输出：每行「模型编号<Tab>显示名」，开头那行「Fetching available models...」跳过
+export function parseAgyModels(stdout) {
+  const out = [];
+  for (const line of String(stdout || '').split('\n')) {
+    const [id, name] = line.split('\t').map((x) => (x || '').trim());
+    if (id && name && /^[\w.-]+$/.test(id) && !out.some((m) => m.id === id)) out.push({ id, name });
+  }
+  return out.length ? out : null;
+}
+// 群里选的模型这个账号用不了（比如选过 Gemini 4 Argon、账号没开通）：退回默认的，不让每一轮都报错
+function agyModelFor(room) {
+  const want = room.models?.gemini && room.models.gemini !== 'auto' ? room.models.gemini : DEFAULT_MODEL;
+  const list = agyState.models;
+  if (!list || list.some((m) => m.id === want)) return { model: want, fallback: false };
+  const model = list.some((m) => m.id === DEFAULT_MODEL) ? DEFAULT_MODEL : list[0].id;
+  return { model, fallback: want !== DEFAULT_MODEL, wanted: want };
+}
 export const agyTooOldText = (version) => tr('Antigravity CLI 版本太旧（{version}），请在终端运行 agy update 升级到 {min} 或更新的版本，再刷新程序列表', { version, min: AGY_MIN_VERSION });
 
 const historyFile = (id) => /^[\w-]+$/.test(id || '') ? path.join(DATA_DIR, 'gemini', 'antigravity', `${id}.json`) : null;
 export const isAntigravitySession = (id) => String(id || '').startsWith(PREFIX);
 
 export function antigravityModels() {
-  return [
-    { id: 'auto', name: 'Gemini 3.8 Flash', description: tr('订阅默认模型，不使用额外点数') },
-    { id: 'gemini-4-argon-high', name: 'Gemini 4 Argon (High)', description: tr('需要账号有对应模型权限') },
-    { id: 'gemini-4-argon-medium', name: 'Gemini 4 Argon (Medium)', description: tr('需要账号有对应模型权限') },
-    { id: DEFAULT_MODEL, name: 'Gemini 3.8 Flash (Medium)', description: '' },
-    { id: 'gemini-3.8-flash-high', name: 'Gemini 3.8 Flash (High)', description: '' },
-  ].map((m) => ({ ...m, vision: true, context: 0, efforts: [], defaultEffort: '' }));
+  const auto = { id: 'auto', name: 'Gemini 3.8 Flash', description: tr('订阅默认模型，不使用额外点数') };
+  // 列表以 agy models 为准（每个账号开通的不一样）；拿不到时只给一定能用的 Gemini 3.8 Flash 三档
+  const list = agyState.models || [
+    { id: 'gemini-3.8-flash-high', name: 'Gemini 3.8 Flash (High)' },
+    { id: DEFAULT_MODEL, name: 'Gemini 3.8 Flash (Medium)' },
+    { id: 'gemini-3.8-flash-low', name: 'Gemini 3.8 Flash (Low)' },
+  ];
+  return [auto, ...list.map((m) => ({ id: m.id, name: m.name, description: '' }))]
+    .map((m) => ({ ...m, vision: true, context: 0, efforts: [], defaultEffort: '' }));
 }
 
 function savedHistory(session) {
@@ -42,10 +62,23 @@ function savedHistory(session) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
 }
 
+// agy 的输出、缓存里都没有上下文上限（查过），只能按模型家族认：Gemini 这几代都是 1,048,576，
+// 按「gemini-数字」整个家族认，以后出 Gemini 5 不用改代码也能显示；GPT-OSS 120B 是 131,072。
+// 查不到的（比如 Antigravity 里的 Claude）给 0，界面上就不画进度条，不瞎写
+export function agyModelWindow(model) {
+  const m = String(model || '');
+  if (/^gemini-\d|^gemini-pro-orchestrator/.test(m)) return 1048576;
+  if (/^gpt-oss-120b/.test(m)) return 131072;
+  return 0;
+}
+
 export function antigravityUsage(session) {
-  const u = savedHistory(session)?.usage;
+  const saved = savedHistory(session);
+  const u = saved?.usage;
   if (!Number.isFinite(u?.input_tokens)) return null;
-  return { images: 0, used: u.input_tokens + (u.output_tokens || 0) + (u.thinking_tokens || 0), window: 0 };
+  const used = u.input_tokens + (u.output_tokens || 0) + (u.thinking_tokens || 0);
+  const window = agyModelWindow(saved.model);
+  return { images: 0, used, window: window >= used ? window : 0 };
 }
 
 export function antigravityArgs({ room, session, side, uploadsDir }) {
@@ -54,7 +87,7 @@ export function antigravityArgs({ room, session, side, uploadsDir }) {
   // 用会话级覆盖强制关掉点数回退和 API provider，不修改用户的 settings.json。
   // 项目模式不允许 command(*)：该规则会连沙盒外的命令也一起放行。
   const settings = {
-    useG1Credits: false, modelProvider: '', model: room.models?.gemini && room.models.gemini !== 'auto' ? room.models.gemini : DEFAULT_MODEL,
+    useG1Credits: false, modelProvider: '', model: agyModelFor(room).model,
     agentMode: '', artifactReviewPolicy: 'always-proceed',
     toolPermission: full ? 'always-proceed' : readonly ? 'request-review' : 'proceed-in-sandbox',
     enableTerminalSandbox: !full, allowNonWorkspaceAccess: full,
@@ -113,7 +146,13 @@ export function runAntigravity(opts, { which, spawnJsonl }) {
   const toolSeen = new Set();
   const chunks = new Map();
   let sid = '';
-  let model = room.models?.gemini && room.models.gemini !== 'auto' ? room.models.gemini : DEFAULT_MODEL;
+  const picked = agyModelFor(room);
+  let model = picked.model;
+  if (picked.fallback) {
+    const note = { kind: 'warning', text: tr('这个账号用不了 {wanted}，这一轮先用 {model}；可以在群设置里换一个能用的模型', { wanted: picked.wanted, model }) };
+    steps.push(note);
+    onStep(note);
+  }
   let finalResult;
   let latestUsage;
   let stopped = false;
@@ -146,7 +185,11 @@ export function runAntigravity(opts, { which, spawnJsonl }) {
     if (stopped || code !== 0 || finalResult?.status !== 'SUCCESS') {
       return { ok: false, error: stopped ? tr('Gemini 已停止') : finalResult?.error || String(stderr || '').trim() || tr('Gemini 未完成回复，请检查安装、登录和模型权限'), steps, session: session || null };
     }
-    const text = typeof finalResult.response === 'string' ? finalResult.response.trim() : [...chunks.values()].join('').trim();
+    const raw = typeof finalResult.response === 'string' ? finalResult.response.trim() : [...chunks.values()].join('').trim();
+    // 一轮里每一步都回一次 [PASS]、最后一步才说正事：把单独成行的 [PASS] 去掉，只留正事；全是 [PASS] 的照旧算没话说
+    // 只认带方括号的大写 [PASS]，代码里单独一行的 pass 不能删
+    const kept = raw.split('\n').filter((l) => !/^\s*\[\s*PASS\s*\]\s*$/.test(l)).join('\n').trim();
+    const text = kept || raw;
     // 做完了但拿不到能接着用的会话 id：不算失败（免得把做过的事再做一遍），清掉会话、下一轮带聊天记录重来
     if (!historyFile(sid)) return { ok: true, text, steps, session: null, model, effort: '', ...(side ? {} : { resetSession: true, warning: tr('Gemini 这一轮做完了，但没拿到会话编号，下一轮会带上最近的聊天记录重新开始') }) };
     let warning;

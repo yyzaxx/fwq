@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f7">
+  <title>任务清单</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="任务清单首页"><span class="brand-mark" aria-hidden="true">✓</span><span>任务清单</span></a>
+      <span class="save-state" id="save-state">已保存到服务器</span>
+    </header>
+
+    <main>
+      <section class="summary" aria-labelledby="summary-title">
+        <div>
+          <p class="eyebrow" id="today"></p>
+          <h1 id="summary-title">把事记下来，<br><span>一件件完成。</span></h1>
+        </div>
+        <div class="progress-card">
+          <div class="progress-ring" id="progress-ring"><div><strong id="progress-number">0%</strong><span>已完成</span></div></div>
+          <p id="progress-copy">还没有任务</p>
+        </div>
+      </section>
+
+      <section class="create-card" aria-labelledby="create-title">
+        <div class="section-heading"><h2 id="create-title">新任务</h2><span>简单记录，随时继续</span></div>
+        <form id="create-form">
+          <div class="title-input-wrap"><input id="title" name="title" maxlength="120" autocomplete="off" placeholder="要做什么？" aria-label="任务名称" required><button class="primary-button" type="submit"><span aria-hidden="true">＋</span> 添加任务</button></div>
+          <div class="form-details">
+            <label>截止日期<input type="date" name="dueDate" id="due-date"></label>
+            <label>优先级<select name="priority" id="priority"><option value="medium">普通</option><option value="high">重要</option><option value="low">稍后</option></select></label>
+            <label class="note-field">备注<input name="note" id="note" maxlength="1000" placeholder="可选，补充一些细节"></label>
+          </div>
+          <p class="form-error" id="form-error" role="alert"></p>
+        </form>
+      </section>
+
+      <section class="tasks-section" aria-labelledby="tasks-title">
+        <div class="section-heading task-heading"><div><h2 id="tasks-title">我的任务 <span class="count" id="task-count">0</span></h2></div><button id="clear-completed" class="text-button" type="button" hidden>清除已完成</button></div>
+        <div class="filters" role="group" aria-label="筛选任务">
+          <button class="filter active" data-filter="all" type="button">全部</button>
+          <button class="filter" data-filter="active" type="button">待完成</button>
+          <button class="filter" data-filter="completed" type="button">已完成</button>
+          <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索任务" aria-label="搜索任务"></label>
+        </div>
+        <div id="task-list" class="task-list" aria-live="polite"></div>
+        <div class="empty" id="empty" hidden><span class="empty-icon" aria-hidden="true">✓</span><h3 id="empty-title">清单是空的</h3><p id="empty-copy">在上方添加第一件事吧。</p></div>
+      </section>
+    </main>
+    <footer>专注当下，不加班。</footer>
+  </div>
+
+  <dialog id="edit-dialog">
+    <form id="edit-form">
+      <div class="dialog-header"><h2>编辑任务</h2><button type="button" class="icon-button" id="close-dialog" aria-label="关闭">×</button></div>
+      <input type="hidden" name="id">
+      <label>任务名称<input name="title" maxlength="120" required></label>
+      <div class="dialog-row"><label>截止日期<input type="date" name="dueDate"></label><label>优先级<select name="priority"><option value="medium">普通</option><option value="high">重要</option><option value="low">稍后</option></select></label></div>
+      <label>备注<textarea name="note" maxlength="1000" rows="4" placeholder="补充一些细节"></textarea></label>
+      <p class="form-error" id="edit-error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" class="secondary-button" id="cancel-edit">取消</button><button type="submit" class="primary-button">保存修改</button></div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status"></div>
+</body>
+</html>

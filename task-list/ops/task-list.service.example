@@ -1,0 +1,23 @@
+[Unit]
+Description=任务清单网站
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/ClawChatProjects/task-list
+Environment=PORT=7380
+Environment=DATA_FILE=/root/ClawChatProjects/task-list/data/tasks.json
+ExecStart=/usr/local/bin/node /root/ClawChatProjects/task-list/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/root/ClawChatProjects/task-list/data
+MemoryHigh=128M
+MemoryMax=256M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

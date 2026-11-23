@@ -2,7 +2,7 @@
 
 商品图片调研与英文标题工作台，包含中文网页、Node.js 后端、自动化测试，以及专用浏览器和资源保护的部署配置。
 
-- 图片和 ZIP 批量上传，逐张串行执行 Amazon / Sif 调研。
+- 图片和 ZIP 批量上传，逐张串行执行 Amazon / Sif 调研。批次保留的图片全部完成后，自动生成内嵌图片的 Excel。
 - 流量词显示中文释义，复制仍为原英文；支持全局完整词黑名单。
 - Sif仅用当前反查，取消Amazon验证后的固定30分钟等待。
 - 保存与选择两套标题模板，核验词源、固定文字和字符数。
@@ -21,12 +21,13 @@
 
 ## 检查
 
-需要 Node.js 22 或更高版本、Python 3 和 ImageMagick。网站没有第三方 npm 运行依赖。
+需要 Node.js 22 或更高版本、Python 3 和 ImageMagick。网站没有第三方 npm 运行依赖。Excel 导出使用随源码提供的 XlsxWriter 3.2.9，许可证随库附带。
 
 ```sh
 cd web
 npm test
 npm run check
+python3 -B -m unittest discover -s test -p batch_excel_script_test.py
 ```
 
 执行真实调研还需要已认证的本机 Codex，以及已登录的 Amazon / Sif 专用浏览器。技能及全部引用文件现已收录在 `ai-listing/`，按部署说明安装到 `/root/.codex/skills/ai-listing/`；账号认证和浏览器登录需在部署机器单独完成。

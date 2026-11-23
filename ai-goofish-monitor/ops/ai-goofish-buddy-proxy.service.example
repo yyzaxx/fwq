@@ -1,0 +1,20 @@
+[Unit]
+Description=AI Goofish 容器到本机 Buddy2api 的受限转发
+After=network-online.target docker.service buddy2api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+ExecStart=/usr/bin/socat TCP4-LISTEN:18879,bind=172.18.0.1,reuseaddr,fork,range=172.18.0.0/16 TCP4:127.0.0.1:18878,connect-timeout=5
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+MemoryMax=32M
+TasksMax=16
+
+[Install]
+WantedBy=multi-user.target

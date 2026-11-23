@@ -12,6 +12,7 @@ import { TaskRunner } from './lib/runner.mjs';
 import { TaskRestarter } from './lib/restart.mjs';
 import {KeywordManager} from './lib/keywords.mjs';
 import { BatchManager,prepareArchive } from './lib/batches.mjs';
+import {BatchExcelExporter} from './lib/batch-excel.mjs';
 import { importHistory } from './lib/import-history.mjs';
 import { validateInput,detectImage } from './lib/domain.mjs';
 import { realFile,publicFile,renderMarkdown,escapeHtml,packageReport } from './lib/reports.mjs';
@@ -42,6 +43,8 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
   const keywordManager=new KeywordManager(store,runner);
   const batches=await new TaskStore(path.join(dataRoot,'_batches')).init();
   const batchManager=new BatchManager(store,batches,runner);
+  const batchExcel=new BatchExcelExporter(store,batches);
+  const batchList=()=>batchManager.list().map(batch=>batchExcel.view(batch));
   await runner.restore();await batchManager.restore();runner.enabled=runnerEnabled;if(runnerEnabled)void runner.drain();
   let archiveUploads=0,imageUploads=0,reportDownloads=0,activeRequests=0;
   let healthCache=null,healthTime=0;
@@ -66,7 +69,7 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
         let same=false;try{same=new URL(req.headers.origin).host===req.headers.host;}catch{}
         if(!same)return reply(res,403,{error:'请从本站提交任务'});
       }
-      if(req.method==='GET'&&route==='api/bootstrap')return reply(res,200,{tasks:store.list().map(publicTask),batches:batchManager.list(),queue:runner.info(),templates:templates.list(),health:await health()});
+      if(req.method==='GET'&&route==='api/bootstrap')return reply(res,200,{tasks:store.list().map(publicTask),batches:batchList(),queue:runner.info(),templates:templates.list(),health:await health()});
       if(req.method==='GET'&&route==='api/keyword-blacklist')return reply(res,200,store.blacklist.list());
       if(req.method==='POST'&&route==='api/keyword-blacklist'){
         const body=await readBody(req);return reply(res,200,await store.blacklist.change(body.action,body.term));
@@ -74,7 +77,7 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
       if(req.method==='GET'&&route==='api/queue')return reply(res,200,runner.info());
       if(req.method==='POST'&&route==='api/queue/resume-all'){await readBody(req);return reply(res,200,await runner.resumeAll());}
       if(req.method==='POST'&&route==='api/queue/resume'){await readBody(req);await runner.resumeLogin();return reply(res,200,runner.info());}
-      if(req.method==='GET'&&route==='api/batches')return reply(res,200,batchManager.list());
+      if(req.method==='GET'&&route==='api/batches')return reply(res,200,batchList());
       if(req.method==='POST'&&route==='api/batches/preview'){
         if(archiveUploads||imageUploads)return reply(res,429,{error:'正在处理其他图片或压缩包，请稍后上传'});
         if(!String(req.headers['content-type']||'').startsWith('application/zip'))return reply(res,415,{error:'请上传ZIP压缩包'});
@@ -89,10 +92,14 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
           return reply(res,201,batchManager.view(batch));
         }catch(error){await fs.rm(directory,{recursive:true,force:true});throw error;}finally{archiveUploads--;}
       }
-      const batchRoute=route.match(/^api\/batches\/([a-zA-Z0-9-]{5,80})(?:\/(start|cancel|preview)(?:\/([0-9]{3}))?)?$/);
+      const batchRoute=route.match(/^api\/batches\/([a-zA-Z0-9-]{5,80})(?:\/(start|cancel|preview|excel)(?:\/([0-9]{3}))?)?$/);
       if(batchRoute){
         const [,id,action,fileId]=batchRoute,batch=batches.get(id);if(!batch)return reply(res,404,{error:'批次不存在'});
-        if(req.method==='GET'&&!action)return reply(res,200,batchManager.view(batch));
+        if(req.method==='GET'&&!action)return reply(res,200,batchExcel.view(batchManager.view(batch)));
+        if(req.method==='GET'&&action==='excel'){
+          const filename=await batchExcel.export(id);
+          return reply(res,200,await fs.readFile(filename),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',{'content-disposition':`attachment; filename=listing-batch-${id.slice(0,8)}.xlsx`});
+        }
         if(req.method==='DELETE'&&!action){await readBody(req);return reply(res,200,await batchManager.remove(id));}
         if(req.method==='GET'&&action==='preview'){
           const index=batch.files.findIndex(x=>x.id===fileId),file=batch.files[index];if(!file||batch.taskIds?.[index]&&store.isDeleted(batch.taskIds[index]))return reply(res,404,{error:'图片不存在'});
@@ -174,7 +181,9 @@ export async function createApp({dataRoot=path.join(ROOT,'data','jobs'),basePath
     server.once('listening',()=>{void check();timer=setInterval(()=>void check(),1000);timer.unref();});
     server.once('close',()=>clearInterval(timer));
   }
-  server.once('close',()=>runner.dispose());
+  let stopExcelWatch;
+  server.once('listening',()=>{stopExcelWatch=batchExcel.watch();});
+  server.once('close',()=>{stopExcelWatch?.();runner.dispose();});
   return {server,store,runner,batches,batchManager,basePath};
 }
 

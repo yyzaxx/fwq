@@ -6,6 +6,8 @@
 
 状态文件格式为站点ID到 `{salt,hash,version}` 的映射：salt为随机16字节的十六进制值，hash为Node `crypto.scryptSync(password,salt,32)` 的十六进制值，version为随机值。所有值必须在目标机器重新生成，状态文件权限600。`STATE_FILE`可指定状态路径，业务账号/API密钥与入口密码分开保存。
 
+任务清单入口为 8799，默认转发到本机 7380。闲鱼监控入口为 8798，默认转发到本机 8000，使用应用管理员登录签发网关会话。静态页面可直接加载，业务接口和 WebSocket 使用该会话。
+
 服务模板在 `site-access.service.example`。业务后端只监听本机；此基础入口为HTTP，当前源码的登录/改密码与WebSocket来源校验使用 `http://Host`。若放在HTTPS代理后，代理必须先核对真实HTTPS Origin，再对可信上游规范化HTTP Origin（WebSocket同样处理），或者另行实现受信的转发协议支持；不能仅加TLS便视为可用。公网开放前验证登录、来源校验与WebSocket转发。现有站点关闭/重启入口会重置内存会话，操作前考虑正在使用的连接。
 
 轻单与DeepSeek Harness的运行入口已移除；仓库内旧轻单源码只归档，不因安装本入口而恢复。

@@ -1,0 +1,16 @@
+location = /tasks {
+    return 308 /tasks/;
+}
+location ^~ /tasks/ {
+    auth_basic off;
+    if ($task_list_bad_origin) { return 403; }
+    proxy_pass http://127.0.0.1:7380/;
+    proxy_set_header Host 127.0.0.1:7380;
+    proxy_set_header Authorization "";
+    proxy_set_header Accept-Encoding "";
+    sub_filter_once off;
+    sub_filter_types text/javascript;
+    sub_filter 'href="/' 'href="/tasks/';
+    sub_filter 'src="/' 'src="/tasks/';
+    sub_filter '/api/tasks' '/tasks/api/tasks';
+}

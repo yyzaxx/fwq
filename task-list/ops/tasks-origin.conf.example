@@ -1,0 +1,7 @@
+map "$request_method:$http_origin" $task_list_bad_origin {
+    default 1;
+    ~^(GET|HEAD): 0;
+    "POST:https://tasks.example.test" 0;
+    "PUT:https://tasks.example.test" 0;
+    "DELETE:https://tasks.example.test" 0;
+}

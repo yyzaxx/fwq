@@ -20,13 +20,17 @@ DB_PATH=/tmp/qingdan.sqlite PORT=8767 node server.js
 
 ## ClawChat
 
-`clawchat/` 是当前群聊网站 ClawChat 0.7.67 的源码快照，包含现有服务器适配、前后端、测试和各平台构建文件。Linux 部署、数据目录及多项目仓库下的升级边界见 `clawchat/DEPLOYMENT.md`。聊天记录、上传附件、账号密钥及运行数据不包含在内。
+`clawchat/` 是当前群聊网站 ClawChat 0.7.73 的源码快照，包含现有服务器适配、前后端、测试和各平台构建文件。Linux 部署、数据目录及多项目仓库下的升级边界见 `clawchat/DEPLOYMENT.md`。聊天记录、上传附件、账号密钥及运行数据不包含在内。
 
 ## Listing Studio
 
-`listing-studio/` 是商品图片调研与英文标题工作台，包含网站源码、166项自动测试、专用浏览器启动脚本及 Nginx/systemd 资源保护配置。支持全局流量词黑名单、中文释义显示且复制保留英文原词、仅Sif当前反查、图片与 ZIP 批量调研、两套模板、报告下载、历史删除、任务重新开始、一键恢复暂停任务和最多2个浏览器标签页。Amazon验证后的固定30分钟等待已取消，简单“我是人类”控件按用户授权尝试一次，未通过则保留页面暂停。运行依赖与部署步骤见 [Listing Studio 说明](listing-studio/README.md)。
+`listing-studio/` 是商品图片调研与英文标题工作台，包含网站源码、自动化测试、专用浏览器启动脚本及 Nginx/systemd 资源保护配置。支持全局流量词黑名单、中文释义显示且复制保留英文原词、仅Sif当前反查、图片与 ZIP 批量调研、批次 Excel 汇总、两套模板、报告下载、历史删除、任务重新开始、一键恢复暂停任务和最多2个浏览器标签页。Amazon验证后的固定30分钟等待已取消，简单“我是人类”控件按用户授权尝试一次，未通过则保留页面暂停。运行依赖与部署步骤见 [Listing Studio 说明](listing-studio/README.md)。
 
 任务记录、商品图片、报告、模板库、Cookie、浏览器 profile、账号凭据与私人访问路径不包含在内。
+
+## 任务清单与闲鱼监控
+
+[任务清单](task-list/README.md) 提供服务器端数据存储和 IP 路由模板。[闲鱼监控](ai-goofish-monitor/README.md) 提供 Docker 部署配置与 Buddy2api 转发模板。网页入口见 [site-access](site-access/README.md)。
 
 ## 新服务器联合部署
 
